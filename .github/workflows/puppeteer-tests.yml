@@ -18,20 +18,47 @@ jobs:
       with:
         fetch-depth: 1
     
+    - name: Find package.json
+      id: find-package
+      run: |
+        # Look for package.json in the repository
+        if [ -f "package.json" ]; then
+          echo "package_dir=." >> $GITHUB_OUTPUT
+          echo "Found package.json in root directory"
+        elif [ -f "ai-learning-platform/package.json" ]; then
+          echo "package_dir=ai-learning-platform" >> $GITHUB_OUTPUT
+          echo "Found package.json in ai-learning-platform directory"
+        else
+          echo "Could not find package.json"
+          find . -name "package.json" -type f | tee package-locations.txt
+          if [ -s package-locations.txt ]; then
+            # Get the first package.json location
+            PACKAGE_DIR=$(dirname $(head -1 package-locations.txt))
+            echo "package_dir=${PACKAGE_DIR}" >> $GITHUB_OUTPUT
+            echo "Found package.json in ${PACKAGE_DIR} directory"
+          else
+            echo "No package.json found in repository"
+            exit 1
+          fi
+        fi
+    
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        # Use npm cache only if package-lock.json exists
-        cache: ${{ hashFiles('package-lock.json') != '' && 'npm' || '' }}
+        # Use npm cache only if package-lock.json exists in the package directory
+        cache: ${{ hashFiles(format('{0}/package-lock.json', steps.find-package.outputs.package_dir)) != '' && 'npm' || '' }}
+        cache-dependency-path: ${{ steps.find-package.outputs.package_dir }}/package-lock.json
     
     - name: Install dependencies
       run: |
         echo "Installing dependencies..."
         npm install
+      working-directory: ${{ steps.find-package.outputs.package_dir }}
     
     - name: Create logs directory
       run: mkdir -p logs
+      working-directory: ${{ steps.find-package.outputs.package_dir }}
     
     - name: Start server in background
       run: |
@@ -39,16 +66,19 @@ jobs:
         npm start &
         echo "Waiting for server to be ready..." | tee -a logs/server.log
         sleep 10 # Give the server more time to start
+      working-directory: ${{ steps.find-package.outputs.package_dir }}
     
     - name: Run browser tests
       run: |
         echo "Running browser tests..." | tee -a logs/tests.log
         npm run test:browser || echo "Browser tests failed" | tee -a logs/tests.log
+      working-directory: ${{ steps.find-package.outputs.package_dir }}
     
     - name: Run accessibility tests
       run: |
         echo "Running accessibility tests..." | tee -a logs/tests.log
         npm run test:accessibility || echo "Accessibility tests failed" | tee -a logs/tests.log
+      working-directory: ${{ steps.find-package.outputs.package_dir }}
       
     - name: Check if server is running
       run: |
@@ -59,6 +89,7 @@ jobs:
           echo "Server is not running" | tee -a logs/server.log
           exit 1
         fi
+      working-directory: ${{ steps.find-package.outputs.package_dir }}
 
     - name: Upload logs on failure
       if: ${{ failure() }}
@@ -66,7 +97,7 @@ jobs:
       with:
         name: server-logs
         path: |
-          logs/
-          npm-debug.log*
+          ${{ steps.find-package.outputs.package_dir }}/logs/
+          ${{ steps.find-package.outputs.package_dir }}/npm-debug.log*
         retention-days: 5
         if-no-files-found: warn
