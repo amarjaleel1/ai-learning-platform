@@ -1,99 +1,602 @@
 // UI Components and Notifications
 
-// Create notification system
-function showNotification(message, type = 'info') {
+// Store references to active UI elements
+const uiState = {
+    notifications: [],
+    activeModals: [],
+    tooltips: []
+};
+
+/**
+ * Show a notification to the user
+ * @param {string} message - The message to display
+ * @param {string} type - Notification type: 'info', 'success', 'warning', 'error'
+ * @param {number} duration - How long to show the notification (ms)
+ */
+function showNotification(message, type = 'info', duration = 5000) {
+    // Create notification container if it doesn't exist
+    let container = document.getElementById('notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification-container';
+        container.setAttribute('role', 'alert');
+        container.setAttribute('aria-live', 'polite');
+        document.body.appendChild(container);
+    }
+    
     // Create notification element
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     
-    // Add icon based on notification type
-    let icon = 'info-circle';
-    switch(type) {
-        case 'success': icon = 'check-circle'; break;
-        case 'warning': icon = 'exclamation-triangle'; break;
-        case 'error': icon = 'times-circle'; break;
+    // Generate a unique ID for this notification
+    const id = 'notification-' + Date.now();
+    notification.id = id;
+    
+    // Add appropriate icon based on type
+    let icon;
+    switch (type) {
+        case 'success':
+            icon = 'check-circle';
+            break;
+        case 'warning':
+            icon = 'exclamation-triangle';
+            break;
+        case 'error':
+            icon = 'times-circle';
+            break;
+        default:
+            icon = 'info-circle';
     }
     
-    notification.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+    // Build notification content
+    notification.innerHTML = `
+        <div class="notification-icon">
+            <i class="fas fa-${icon}" aria-hidden="true"></i>
+        </div>
+        <div class="notification-content">
+            <div class="notification-message">${message}</div>
+        </div>
+        <button class="notification-close" aria-label="Close notification">
+            <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
+    `;
     
-    // Add to notification container, create if it doesn't exist
-    let notificationContainer = document.getElementById('notification-container');
-    if (!notificationContainer) {
-        notificationContainer = document.createElement('div');
-        notificationContainer.id = 'notification-container';
-        document.body.appendChild(notificationContainer);
-    }
+    // Add close button handler
+    notification.querySelector('.notification-close').addEventListener('click', () => {
+        removeNotification(id);
+    });
     
-    // Add to DOM
-    notificationContainer.appendChild(notification);
+    // Add to the DOM
+    container.appendChild(notification);
     
-    // Animate in
-    setTimeout(() => {
+    // Track in state
+    uiState.notifications.push({
+        id,
+        element: notification,
+        timeout: setTimeout(() => removeNotification(id), duration)
+    });
+    
+    // Trigger entrance animation
+    requestAnimationFrame(() => {
         notification.classList.add('visible');
-    }, 10);
+    });
     
-    // Remove after delay
-    setTimeout(() => {
-        notification.classList.remove('visible');
-        setTimeout(() => {
-            notification.remove();
-        }, 300);
-    }, 4000);
+    return id;
 }
 
-// Show hint in a modal
-function showHint(hintText) {
-    // Create modal container
+/**
+ * Remove a notification
+ * @param {string} id - ID of the notification to remove
+ */
+function removeNotification(id) {
+    // Find notification in state
+    const index = uiState.notifications.findIndex(n => n.id === id);
+    if (index === -1) return;
+    
+    const notification = uiState.notifications[index];
+    
+    // Clear timeout if exists
+    if (notification.timeout) {
+        clearTimeout(notification.timeout);
+    }
+    
+    // Trigger exit animation
+    notification.element.classList.remove('visible');
+    
+    // Remove from DOM after animation
+    setTimeout(() => {
+        if (notification.element.parentNode) {
+            notification.element.parentNode.removeChild(notification.element);
+        }
+        
+        // Remove from state
+        uiState.notifications.splice(index, 1);
+    }, 300);
+}
+
+/**
+ * Show a modal dialog
+ * @param {Object} options - Modal options
+ * @param {string} options.title - Modal title
+ * @param {string|HTMLElement} options.content - Modal content
+ * @param {Array} options.buttons - Array of button configurations
+ * @returns {Object} Modal controller with close method
+ */
+function showModal(options) {
+    // Default options
+    const defaults = {
+        title: '',
+        content: '',
+        closable: true,
+        buttons: [{
+            text: 'Close',
+            type: 'secondary',
+            action: 'close'
+        }],
+        width: 'auto',
+        onClose: null
+    };
+    
+    // Merge options
+    const config = { ...defaults, ...options };
+    
+    // Create modal element
     const modal = document.createElement('div');
-    modal.className = 'modal hint-modal';
+    modal.className = 'modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    
+    // Generate ID
+    const modalId = 'modal-' + Date.now();
+    modal.id = modalId;
+    
+    // Create modal HTML
+    let buttonHtml = '';
+    config.buttons.forEach(button => {
+        const buttonType = button.type || 'secondary';
+        buttonHtml += `
+            <button class="${buttonType}-button" data-action="${button.action || 'close'}">
+                ${button.text}
+            </button>
+        `;
+    });
+    
     modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="far fa-lightbulb"></i> Hint</h3>
-                <button class="close-button">&times;</button>
+        <div class="modal-content" style="width: ${config.width};">
+            ${config.title ? `
+                <div class="modal-header">
+                    <h3>${config.title}</h3>
+                    ${config.closable ? `
+                        <button class="close-modal" aria-label="Close modal">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            ` : ''}
+            <div class="modal-body">
+                ${typeof config.content === 'string' ? config.content : ''}
             </div>
-            <div class="hint-content">
-                <p>${hintText}</p>
-            </div>
+            ${buttonHtml ? `
+                <div class="modal-footer">
+                    ${buttonHtml}
+                </div>
+            ` : ''}
         </div>
     `;
     
+    // If content is an element, append it
+    if (typeof config.content !== 'string') {
+        modal.querySelector('.modal-body').appendChild(config.content);
+    }
+    
+    // Add to DOM
     document.body.appendChild(modal);
     
-    // Show modal with animation
-    setTimeout(() => {
-        modal.classList.add('show');
-    }, 10);
-    
-    // Add event listener to close button
-    modal.querySelector('.close-button').addEventListener('click', () => {
-        closeModal(modal);
+    // Trigger entrance animation
+    requestAnimationFrame(() => {
+        modal.classList.add('visible');
     });
     
-    // Close if clicking outside
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeModal(modal);
+    // Prevent body scrolling
+    document.body.classList.add('modal-open');
+    
+    // Track in state
+    const modalState = {
+        id: modalId,
+        element: modal,
+        config
+    };
+    
+    uiState.activeModals.push(modalState);
+    
+    // Close handler
+    const closeModal = () => {
+        // Find in state
+        const index = uiState.activeModals.findIndex(m => m.id === modalId);
+        if (index === -1) return;
+        
+        const modalState = uiState.activeModals[index];
+        
+        // Trigger exit animation
+        modalState.element.classList.remove('visible');
+        
+        // Remove from DOM after animation
+        setTimeout(() => {
+            if (modalState.element.parentNode) {
+                modalState.element.parentNode.removeChild(modalState.element);
+            }
+            
+            // Remove from state
+            uiState.activeModals.splice(index, 1);
+            
+            // Re-enable body scrolling if no more modals
+            if (uiState.activeModals.length === 0) {
+                document.body.classList.remove('modal-open');
+            }
+            
+            // Call onClose callback
+            if (typeof modalState.config.onClose === 'function') {
+                modalState.config.onClose();
+            }
+        }, 300);
+    };
+    
+    // Setup event listeners
+    
+    // Close button
+    const closeButton = modal.querySelector('.close-modal');
+    if (closeButton) {
+        closeButton.addEventListener('click', closeModal);
+    }
+    
+    // Button actions
+    modal.querySelectorAll('button[data-action]').forEach(button => {
+        button.addEventListener('click', () => {
+            const action = button.getAttribute('data-action');
+            
+            if (action === 'close') {
+                closeModal();
+            } else {
+                // Find button config
+                const buttonConfig = config.buttons.find(b => b.action === action);
+                if (buttonConfig && typeof buttonConfig.handler === 'function') {
+                    buttonConfig.handler();
+                }
+            }
+        });
+    });
+    
+    // Close on ESC key
+    if (config.closable) {
+        const keyHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', keyHandler);
+            }
+        };
+        document.addEventListener('keydown', keyHandler);
+    }
+    
+    // Return controller
+    return {
+        close: closeModal,
+        element: modal
+    };
+}
+
+/**
+ * Show a tooltip
+ * @param {Element} target - Element to attach tooltip to
+ * @param {string} content - Tooltip content
+ * @param {string} position - Tooltip position: 'top', 'right', 'bottom', 'left'
+ * @returns {Object} Tooltip controller with show/hide methods
+ */
+function showTooltip(target, content, position = 'top') {
+    // Create tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.className = `tooltip tooltip-${position}`;
+    tooltip.innerHTML = content;
+    
+    // Create arrow
+    const arrow = document.createElement('div');
+    arrow.className = 'tooltip-arrow';
+    tooltip.appendChild(arrow);
+    
+    // Add to DOM
+    document.body.appendChild(tooltip);
+    
+    // Generate ID
+    const tooltipId = 'tooltip-' + Date.now();
+    tooltip.id = tooltipId;
+    
+    // Position tooltip
+    const positionTooltip = () => {
+        const targetRect = target.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        let top, left;
+        
+        switch (position) {
+            case 'top':
+                left = targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2);
+                top = targetRect.top - tooltipRect.height - 10;
+                break;
+                
+            case 'right':
+                left = targetRect.right + 10;
+                top = targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2);
+                break;
+                
+            case 'bottom':
+                left = targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2);
+                top = targetRect.bottom + 10;
+                break;
+                
+            case 'left':
+                left = targetRect.left - tooltipRect.width - 10;
+                top = targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2);
+                break;
+        }
+        
+        // Adjust if off screen
+        if (left < 10) left = 10;
+        if (left + tooltipRect.width > window.innerWidth - 10) {
+            left = window.innerWidth - tooltipRect.width - 10;
+        }
+        
+        if (top < 10) top = 10;
+        if (top + tooltipRect.height > window.innerHeight - 10) {
+            top = window.innerHeight - tooltipRect.height - 10;
+        }
+        
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+    };
+    
+    // Show tooltip
+    const showTooltip = () => {
+        positionTooltip();
+        tooltip.classList.add('visible');
+    };
+    
+    // Hide tooltip
+    const hideTooltip = () => {
+        tooltip.classList.remove('visible');
+    };
+    
+    // Destroy tooltip
+    const destroyTooltip = () => {
+        // Find in state
+        const index = uiState.tooltips.findIndex(t => t.id === tooltipId);
+        if (index !== -1) {
+            uiState.tooltips.splice(index, 1);
+        }
+        
+        // Remove from DOM
+        if (tooltip.parentNode) {
+            tooltip.parentNode.removeChild(tooltip);
+        }
+    };
+    
+    // Store in state
+    uiState.tooltips.push({
+        id: tooltipId,
+        element: tooltip,
+        target,
+        callbacks: {
+            show: showTooltip,
+            hide: hideTooltip,
+            destroy: destroyTooltip
+        }
+    });
+    
+    // Return controller
+    return {
+        show: showTooltip,
+        hide: hideTooltip,
+        destroy: destroyTooltip
+    };
+}
+
+/**
+ * Create a tooltip that shows on hover
+ * @param {Element} element - Element to attach tooltip to
+ * @param {string} content - Tooltip content
+ * @param {string} position - Tooltip position
+ */
+function createHoverTooltip(element, content, position = 'top') {
+    let tooltipController = null;
+    
+    element.addEventListener('mouseenter', () => {
+        tooltipController = showTooltip(element, content, position);
+        tooltipController.show();
+    });
+    
+    element.addEventListener('mouseleave', () => {
+        if (tooltipController) {
+            tooltipController.hide();
+            
+            // Destroy after animation
+            setTimeout(() => {
+                tooltipController.destroy();
+                tooltipController = null;
+            }, 300);
         }
     });
 }
 
-// Generic close modal function
-function closeModal(modal) {
-    modal.classList.remove('show');
-    setTimeout(() => {
-        modal.remove();
-    }, 300);
+/**
+ * Show a confirmation dialog
+ * @param {string} message - Confirmation message
+ * @param {Object} options - Additional options
+ * @returns {Promise} Promise that resolves to true if confirmed, false otherwise
+ */
+function showConfirmation(message, options = {}) {
+    return new Promise((resolve) => {
+        const defaults = {
+            title: 'Confirm',
+            confirmText: 'Yes',
+            cancelText: 'No',
+            type: 'question'
+        };
+        
+        const config = { ...defaults, ...options };
+        
+        // Show modal
+        showModal({
+            title: config.title,
+            content: `<p>${message}</p>`,
+            closable: true,
+            buttons: [
+                {
+                    text: config.confirmText,
+                    type: 'primary',
+                    action: 'confirm',
+                    handler: () => resolve(true)
+                },
+                {
+                    text: config.cancelText,
+                    type: 'secondary',
+                    action: 'cancel',
+                    handler: () => resolve(false)
+                }
+            ],
+            onClose: () => resolve(false)
+        });
+    });
 }
 
-// Animate coin shortage (shake effect)
-function animateCoinShortage() {
+/**
+ * Show prompt dialog that requests input from user
+ * @param {string} message - Prompt message
+ * @param {string} defaultValue - Default input value
+ * @param {Object} options - Additional options
+ * @returns {Promise} Promise that resolves to input value or null if canceled
+ */
+function showPrompt(message, defaultValue = '', options = {}) {
+    return new Promise((resolve) => {
+        const defaults = {
+            title: 'Input Required',
+            confirmText: 'OK',
+            cancelText: 'Cancel',
+            inputType: 'text',
+            placeholder: '',
+            maxLength: 100
+        };
+        
+        const config = { ...defaults, ...options };
+        
+        // Create input element
+        const inputContainer = document.createElement('div');
+        inputContainer.className = 'prompt-container';
+        
+        // Add message
+        const messageElement = document.createElement('p');
+        messageElement.textContent = message;
+        inputContainer.appendChild(messageElement);
+        
+        // Add input field
+        const inputGroup = document.createElement('div');
+        inputGroup.className = 'input-group';
+        
+        const input = document.createElement('input');
+        input.type = config.inputType;
+        input.value = defaultValue;
+        input.placeholder = config.placeholder;
+        input.maxLength = config.maxLength;
+        
+        inputGroup.appendChild(input);
+        inputContainer.appendChild(inputGroup);
+        
+        // Show modal
+        const modal = showModal({
+            title: config.title,
+            content: inputContainer,
+            closable: true,
+            buttons: [
+                {
+                    text: config.confirmText,
+                    type: 'primary',
+                    action: 'confirm',
+                    handler: () => resolve(input.value)
+                },
+                {
+                    text: config.cancelText,
+                    type: 'secondary',
+                    action: 'cancel',
+                    handler: () => resolve(null)
+                }
+            ],
+            onClose: () => resolve(null)
+        });
+        
+        // Focus input
+        setTimeout(() => {
+            input.focus();
+            
+            // Handle enter key to confirm
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    resolve(input.value);
+                    modal.close();
+                }
+            });
+        }, 100);
+    });
+}
+
+/**
+ * Animate a coin reward
+ * @param {number} amount - Number of coins to animate
+ */
+function animateCoinAward(amount) {
     const coinDisplay = document.getElementById('coin-display');
-    coinDisplay.classList.add('coin-shortage');
+    if (!coinDisplay) return;
     
+    // Create animation container
+    const animContainer = document.createElement('div');
+    animContainer.className = 'coin-animation-container';
+    document.body.appendChild(animContainer);
+    
+    // Get the position of the coin counter
+    const coinRect = coinDisplay.getBoundingClientRect();
+    const targetX = coinRect.left + coinRect.width / 2;
+    const targetY = coinRect.top + coinRect.height / 2;
+    
+    // Create coins
+    const coinCount = Math.min(amount, 10); // Max 10 coins for performance
+    
+    for (let i = 0; i < coinCount; i++) {
+        const coin = document.createElement('div');
+        coin.className = 'animated-coin';
+        coin.innerHTML = '<i class="fas fa-coins"></i>';
+        animContainer.appendChild(coin);
+        
+        // Randomize start position
+        const startX = Math.random() * window.innerWidth;
+        const startY = Math.random() * window.innerHeight;
+        
+        coin.style.left = `${startX}px`;
+        coin.style.top = `${startY}px`;
+        
+        // Animate to target position
+        setTimeout(() => {
+            coin.style.left = `${targetX}px`;
+            coin.style.top = `${targetY}px`;
+            coin.style.opacity = '0';
+        }, 10);
+        
+        // Remove after animation
+        setTimeout(() => {
+            coin.remove();
+        }, 1000);
+    }
+    
+    // Remove animation container after all animations
     setTimeout(() => {
-        coinDisplay.classList.remove('coin-shortage');
-    }, 500);
+        animContainer.remove();
+    }, 1100);
 }
 
 // Check for daily login reward

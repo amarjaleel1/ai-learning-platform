@@ -1,200 +1,279 @@
 /**
- * Analytics module for the AI Learning Platform
- * Collects anonymous usage data to improve the platform
+ * Analytics module for tracking user interaction with the platform
+ * This is strictly for enhancing user experience and improving content
+ * No personal data is collected or sent to external servers
  */
 
-// Analytics state
-const analyticsState = {
-    initialized: false,
-    sessionId: generateSessionId(),
-    events: [],
-    settings: {
-        collectAnonymousData: true,
-        shareProgress: false
-    }
+// Analytics data stored locally
+let analyticsData = {
+    lessonViews: {},
+    timeSpent: {},
+    codeSubmissions: 0,
+    correctSubmissions: 0,
+    hintRequests: 0,
+    sessionsCount: 0,
+    lastSessionDate: null,
+    averageCompletionTime: {}
 };
 
 // Initialize analytics
 function initAnalytics() {
-    if (analyticsState.initialized) return;
-    
-    // Load settings from localStorage
-    const savedSettings = localStorage.getItem('analyticsSettings');
-    if (savedSettings) {
+    // Load previous analytics data if available
+    const savedData = localStorage.getItem('ai_learning_analytics');
+    if (savedData) {
         try {
-            analyticsState.settings = JSON.parse(savedSettings);
+            analyticsData = JSON.parse(savedData);
         } catch (e) {
-            console.error('Error parsing analytics settings:', e);
+            console.error('Error parsing analytics data:', e);
         }
     }
     
-    // Show opt-in dialog if first time
-    if (!localStorage.getItem('analyticsOptIn')) {
-        setTimeout(showAnalyticsOptIn, 5000);
-    }
+    // Record session start
+    analyticsData.sessionsCount++;
+    analyticsData.lastSessionDate = new Date().toISOString();
     
-    // Set up event listeners
-    setupAnalyticsEvents();
+    // Save updated analytics
+    saveAnalytics();
     
-    analyticsState.initialized = true;
-    
-    // Track session start
+    // Send initial tracking info
     trackEvent('session_start', {
-        referrer: document.referrer,
-        userAgent: navigator.userAgent
-    });
-}
-
-// Generate unique session ID
-function generateSessionId() {
-    return 'xxxx-xxxx-xxxx-xxxx'.replace(/x/g, () => {
-        return Math.floor(Math.random() * 16).toString(16);
-    });
-}
-
-// Set up event listeners for tracking
-function setupAnalyticsEvents() {
-    // Track lesson views
-    document.addEventListener('lessonLoaded', function(e) {
-        if (!analyticsState.settings.collectAnonymousData) return;
-        
-        trackEvent('lesson_view', {
-            lessonId: e.detail.lessonId,
-            lessonTitle: e.detail.lessonTitle
-        });
+        session_count: analyticsData.sessionsCount
     });
     
-    // Track code executions
-    document.addEventListener('codeExecuted', function(e) {
-        if (!analyticsState.settings.collectAnonymousData) return;
-        
-        trackEvent('code_executed', {
-            lessonId: e.detail.lessonId,
-            success: e.detail.success,
-            codeLength: e.detail.codeLength
-        });
-    });
-    
-    // Track hint requests
-    document.addEventListener('hintRequested', function(e) {
-        if (!analyticsState.settings.collectAnonymousData) return;
-        
-        trackEvent('hint_requested', {
-            lessonId: e.detail.lessonId
+    // Set up unload event to track session duration
+    let sessionStartTime = Date.now();
+    window.addEventListener('beforeunload', () => {
+        const sessionDuration = Math.round((Date.now() - sessionStartTime) / 1000);
+        trackEvent('session_end', { 
+            duration_seconds: sessionDuration 
         });
     });
 }
 
-// Track an event
-function trackEvent(eventName, data = {}) {
-    if (!analyticsState.settings.collectAnonymousData) return;
+// Track when a lesson is viewed
+function trackLessonView(lessonId) {
+    if (!lessonId) return;
     
-    // Add event to local storage
-    const event = {
-        eventName,
-        timestamp: new Date().toISOString(),
-        sessionId: analyticsState.sessionId,
-        ...data
-    };
+    // Initialize if this is the first view for this lesson
+    if (!analyticsData.lessonViews[lessonId]) {
+        analyticsData.lessonViews[lessonId] = 0;
+        analyticsData.timeSpent[lessonId] = 0;
+    }
     
-    analyticsState.events.push(event);
+    // Increment view count
+    analyticsData.lessonViews[lessonId]++;
     
-    // Send events if we have enough
-    if (analyticsState.events.length >= 10) {
-        sendEvents();
+    // Start timing for this lesson
+    startLessonTimer(lessonId);
+    
+    // Save updated analytics
+    saveAnalytics();
+    
+    // Send tracking event
+    trackEvent('lesson_view', {
+        lesson_id: lessonId,
+        view_count: analyticsData.lessonViews[lessonId]
+    });
+}
+
+// Track time spent on lessons
+let lessonStartTime = null;
+let currentLessonId = null;
+
+function startLessonTimer(lessonId) {
+    // If we were timing a different lesson, record the time spent there first
+    if (currentLessonId && currentLessonId !== lessonId && lessonStartTime) {
+        const timeSpent = Math.round((Date.now() - lessonStartTime) / 1000);
+        analyticsData.timeSpent[currentLessonId] += timeSpent;
+    }
+    
+    // Start timing this lesson
+    currentLessonId = lessonId;
+    lessonStartTime = Date.now();
+}
+
+// Record completion time for a lesson
+function trackLessonCompletion(lessonId, timeInSeconds) {
+    if (!lessonId) return;
+    
+    // Initialize if first completion
+    if (!analyticsData.averageCompletionTime[lessonId]) {
+        analyticsData.averageCompletionTime[lessonId] = {
+            count: 0,
+            totalTime: 0,
+            average: 0
+        };
+    }
+    
+    const data = analyticsData.averageCompletionTime[lessonId];
+    data.count++;
+    data.totalTime += timeInSeconds;
+    data.average = Math.round(data.totalTime / data.count);
+    
+    // Save updated analytics
+    saveAnalytics();
+    
+    // Send tracking event
+    trackEvent('lesson_complete', {
+        lesson_id: lessonId,
+        time_seconds: timeInSeconds
+    });
+}
+
+// Track code submissions
+function trackCodeSubmission(lessonId, isCorrect) {
+    analyticsData.codeSubmissions++;
+    
+    if (isCorrect) {
+        analyticsData.correctSubmissions++;
+    }
+    
+    // Save updated analytics
+    saveAnalytics();
+    
+    // Send tracking event
+    trackEvent('code_submission', {
+        lesson_id: lessonId,
+        is_correct: isCorrect,
+        submission_count: analyticsData.codeSubmissions
+    });
+}
+
+// Track hint requests
+function trackHintRequest(lessonId) {
+    analyticsData.hintRequests++;
+    
+    // Save updated analytics
+    saveAnalytics();
+    
+    // Send tracking event
+    trackEvent('hint_request', {
+        lesson_id: lessonId,
+        hint_count: analyticsData.hintRequests
+    });
+}
+
+// Save analytics data to localStorage
+function saveAnalytics() {
+    try {
+        localStorage.setItem('ai_learning_analytics', JSON.stringify(analyticsData));
+    } catch (e) {
+        console.error('Error saving analytics data:', e);
     }
 }
 
-// Send collected events to server
-function sendEvents() {
-    if (!analyticsState.settings.collectAnonymousData || analyticsState.events.length === 0) return;
+// Send analytics event to tracking service (if user has consented)
+function trackEvent(eventName, eventData = {}) {
+    // Check if user has consented to analytics
+    if (!userState?.preferences?.analyticsConsent) {
+        return;
+    }
     
-    // In a real application, you would send the data to your server
-    // For this example, we'll just log to console and clear the queue
-    console.log('Analytics events:', analyticsState.events);
+    // In a real application, you would send this data to your analytics service
+    // For this example, we'll just log it to the console
+    console.log('ANALYTICS EVENT:', eventName, eventData);
     
-    // Clear the queue after sending
-    analyticsState.events = [];
+    // Example of sending to a hypothetical analytics endpoint:
+    /*
+    fetch('/api/analytics', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            event: eventName,
+            data: eventData,
+            timestamp: new Date().toISOString(),
+            userId: userState.anonymousId || 'anonymous'
+        })
+    }).catch(err => console.error('Analytics error:', err));
+    */
 }
 
-// Show opt-in dialog for analytics
-function showAnalyticsOptIn() {
-    // Create modal
-    const modal = document.createElement('div');
-    modal.className = 'modal analytics-modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Help Us Improve</h3>
+// Generate analytics report
+function generateAnalyticsReport() {
+    // Calculate total time spent learning (in minutes)
+    const totalTimeSpent = Object.values(analyticsData.timeSpent)
+        .reduce((total, time) => total + time, 0) / 60;
+    
+    // Calculate success rate
+    const successRate = analyticsData.codeSubmissions > 0 
+        ? ((analyticsData.correctSubmissions / analyticsData.codeSubmissions) * 100).toFixed(1) 
+        : 0;
+    
+    // Find most viewed lesson
+    let mostViewedLesson = null;
+    let mostViews = 0;
+    
+    Object.entries(analyticsData.lessonViews).forEach(([lessonId, views]) => {
+        if (views > mostViews) {
+            mostViews = views;
+            mostViewedLesson = lessonId;
+        }
+    });
+    
+    // Get most viewed lesson title
+    let mostViewedTitle = 'None';
+    if (mostViewedLesson) {
+        const lesson = lessons.find(l => l.id === mostViewedLesson);
+        if (lesson) {
+            mostViewedTitle = lesson.title;
+        }
+    }
+    
+    // Create report HTML
+    const report = document.createElement('div');
+    report.className = 'analytics-report';
+    report.innerHTML = `
+        <h3>Your Learning Stats</h3>
+        <div class="stats-grid">
+            <div class="stat">
+                <div class="stat-value">${totalTimeSpent.toFixed(1)}</div>
+                <div class="stat-label">Minutes Learning</div>
             </div>
-            <div class="analytics-content">
-                <p>Would you like to help us improve the AI Learning Platform by sharing anonymous usage data?</p>
-                <p class="privacy-note">We only collect information about lesson usage and feature interactions. We never collect personal information or the code you write.</p>
-                
-                <div class="analytics-options">
-                    <div class="option">
-                        <label class="toggle">
-                            <input type="checkbox" id="collect-data" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <div class="option-text">
-                            <h4>Collect anonymous usage data</h4>
-                            <p>Help us understand how lessons are used</p>
-                        </div>
-                    </div>
-                    
-                    <div class="option">
-                        <label class="toggle">
-                            <input type="checkbox" id="share-progress">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <div class="option-text">
-                            <h4>Share progress anonymously</h4>
-                            <p>Help others by contributing to community stats</p>
-                        </div>
-                    </div>
-                </div>
+            <div class="stat">
+                <div class="stat-value">${analyticsData.correctSubmissions}</div>
+                <div class="stat-label">Exercises Completed</div>
             </div>
-            <div class="analytics-actions">
-                <button id="save-analytics-settings" class="primary-button">Save Preferences</button>
+            <div class="stat">
+                <div class="stat-value">${successRate}%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">${analyticsData.sessionsCount}</div>
+                <div class="stat-label">Learning Sessions</div>
             </div>
         </div>
+        <div class="most-viewed">
+            <p>Most studied: <strong>${mostViewedTitle}</strong> (${mostViews} views)</p>
+        </div>
+        <p class="analytics-note">These stats are stored locally and help you track your progress.</p>
     `;
     
-    document.body.appendChild(modal);
-    
-    // Show modal
-    setTimeout(() => {
-        modal.classList.add('show');
-    }, 10);
-    
-    // Add event listeners
-    document.getElementById('save-analytics-settings').addEventListener('click', function() {
-        const collectData = document.getElementById('collect-data').checked;
-        const shareProgress = document.getElementById('share-progress').checked;
-        
-        analyticsState.settings.collectAnonymousData = collectData;
-        analyticsState.settings.shareProgress = shareProgress;
-        
-        localStorage.setItem('analyticsSettings', JSON.stringify(analyticsState.settings));
-        localStorage.setItem('analyticsOptIn', 'true');
-        
-        closeModal(modal);
-        
-        showNotification('Preferences saved. Thank you!', 'success');
-    });
+    return report;
 }
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', initAnalytics);
+// Reset analytics data (for privacy or testing)
+function resetAnalytics() {
+    analyticsData = {
+        lessonViews: {},
+        timeSpent: {},
+        codeSubmissions: 0,
+        correctSubmissions: 0,
+        hintRequests: 0,
+        sessionsCount: 0,
+        lastSessionDate: null,
+        averageCompletionTime: {}
+    };
+    
+    saveAnalytics();
+}
 
-// Ensure events are sent before page unload
-window.addEventListener('beforeunload', function() {
-    sendEvents();
-});
-
-// Export functions
-window.AI_Analytics = {
-    trackEvent,
-    showSettings: showAnalyticsOptIn
-};
+// Export analytics functions
+window.initAnalytics = initAnalytics;
+window.trackLessonView = trackLessonView;
+window.trackLessonCompletion = trackLessonCompletion;
+window.trackCodeSubmission = trackCodeSubmission;
+window.trackHintRequest = trackHintRequest;
+window.generateAnalyticsReport = generateAnalyticsReport;
+window.resetAnalytics = resetAnalytics;

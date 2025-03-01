@@ -1,144 +1,191 @@
 /**
- * Tutorial functionality for the AI Learning Platform
+ * Tutorial system for guiding new users through the AI Learning Platform
  */
 
-// Tutorial data
-const tutorialData = {
-    hasShown: false,
-    steps: [
-        {
-            element: '.sidebar',
-            title: 'Lesson Menu',
-            content: 'Browse available lessons here. Complete lessons to unlock more advanced topics.',
-            position: 'right'
-        },
-        {
-            element: '#coin-display',
-            title: 'Earned Coins',
-            content: 'You\'ll earn coins by completing lessons. Use them to unlock more advanced content or buy hints when you\'re stuck.',
-            position: 'bottom'
-        },
-        {
-            element: '#code-container',
-            title: 'Code Editor',
-            content: 'Write your solutions here. Press Ctrl+Enter to run your code quickly.',
-            position: 'top'
-        },
-        {
-            element: '#visualization-container',
-            title: 'Visualization Area',
-            content: 'See your algorithms in action! This area shows visual representations of your code execution.',
-            position: 'top'
-        }
-    ]
-};
+// Flag to track if tutorial has been shown
+let tutorialShown = false;
 
-// Initialize tutorial when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Add tutorial button to header
-    setupTutorialButton();
-});
-
-// Show tutorial initialization
-function setupTutorialButton() {
-    const userInfo = document.querySelector('.user-info');
+// Initialize tutorial system
+function initTutorial() {
+    // Check if user has already seen the tutorial
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
     
-    if (userInfo) {
-        // Create tutorial button
-        const tutorialButton = document.createElement('button');
-        tutorialButton.className = 'tutorial-button';
-        tutorialButton.title = 'Show Tutorial';
-        tutorialButton.innerHTML = '<i class="fas fa-question-circle"></i>';
-        
-        // Add button to DOM
-        userInfo.appendChild(tutorialButton);
-        
-        // Add click event
-        tutorialButton.addEventListener('click', function() {
-            startTutorial();
-        });
+    // Add tutorial button to header
+    addTutorialButton();
+    
+    // If user is new and tutorial hasn't been shown yet, show it after a delay
+    if (!hasSeenTutorial && !tutorialShown) {
+        setTimeout(() => {
+            showTutorial();
+        }, 2000);
     }
 }
 
-// Start the tutorial
-function startTutorial(customSteps = null) {
-    // Create overlay
+// Add tutorial button to header
+function addTutorialButton() {
+    const header = document.querySelector('header');
+    if (!header) return;
+    
+    // Create tutorial button if it doesn't exist
+    if (!document.getElementById('tutorial-button')) {
+        const tutorialButton = document.createElement('button');
+        tutorialButton.id = 'tutorial-button';
+        tutorialButton.className = 'icon-button';
+        tutorialButton.title = 'Show Tutorial';
+        tutorialButton.setAttribute('aria-label', 'Show tutorial');
+        tutorialButton.innerHTML = '<i class="fas fa-question-circle" aria-hidden="true"></i>';
+        
+        tutorialButton.addEventListener('click', () => {
+            showTutorial();
+        });
+        
+        header.appendChild(tutorialButton);
+    }
+}
+
+// Show the interactive tutorial
+function showTutorial() {
+    // Don't show tutorial if modal is already open
+    if (document.querySelector('.modal')) return;
+    
+    // Mark tutorial as shown
+    tutorialShown = true;
+    
+    // Define tutorial steps
+    const steps = [
+        {
+            title: 'Welcome to AI Learning Platform!',
+            content: 'This quick tour will show you how to use the platform and get the most out of your learning experience.',
+            target: 'body',
+            position: 'center',
+            isIntro: true
+        },
+        {
+            title: 'Lesson Navigation',
+            content: 'Browse and select lessons from this sidebar. As you complete lessons, more advanced ones will unlock.',
+            target: '.sidebar',
+            position: 'right'
+        },
+        {
+            title: 'Your Progress',
+            content: 'This is your profile information. You earn coins by completing lessons, which can be used to unlock more content.',
+            target: '.user-info',
+            position: 'bottom'
+        },
+        {
+            title: 'Learning Area',
+            content: 'This is where lesson content is displayed. Read the instructions carefully before attempting exercises.',
+            target: '#lesson-container',
+            position: 'bottom'
+        },
+        {
+            title: 'Coding Exercises',
+            content: 'Write and test your code here. Use the buttons to run your code, check your solution, or get hints when stuck.',
+            target: '#code-container',
+            position: 'top'
+        },
+        {
+            title: 'Visualizations',
+            content: 'Many lessons include interactive visualizations to help you understand the concepts better.',
+            target: '#visualization-container',
+            position: 'top'
+        },
+        {
+            title: 'Your Dashboard',
+            content: 'View your progress, achievements and recommendations in the dashboard.',
+            target: '[data-nav="dashboard"]',
+            position: 'bottom'
+        },
+        {
+            title: 'Ready to Learn!',
+            content: 'That\'s it! You\'re ready to start learning AI concepts. Click on a lesson in the sidebar to get started.',
+            target: 'body',
+            position: 'center',
+            isOutro: true
+        }
+    ];
+
+    // Create tutorial overlay
     const overlay = document.createElement('div');
     overlay.className = 'tutorial-overlay';
     document.body.appendChild(overlay);
     
-    // Track current step
+    // Start the tutorial
     let currentStep = 0;
+    showStep(currentStep);
     
-    // Use custom steps or default steps
-    const steps = customSteps || tutorialData.steps;
-    
-    // Show the current step
-    function showCurrentStep() {
-        const step = steps[currentStep];
-        
-        // Find target element
-        const targetElement = document.querySelector(step.element);
-        if (!targetElement) {
-            // Skip this step if element not found
-            goToNextStep();
-            return;
-        }
+    // Function to show a tutorial step
+    function showStep(index) {
+        const step = steps[index];
         
         // Create tooltip
-        createTooltip(step, targetElement);
-    }
-    
-    // Create tooltip for a step
-    function createTooltip(step, targetElement) {
-        // Remove any existing tooltips
-        const existingTooltip = document.querySelector('.tutorial-tooltip');
-        if (existingTooltip) {
-            existingTooltip.remove();
-        }
-        
-        // Remove existing highlights
-        document.querySelectorAll('.tutorial-highlight').forEach(el => {
-            el.classList.remove('tutorial-highlight');
-        });
-        
-        // Create new tooltip
         const tooltip = document.createElement('div');
-        tooltip.className = `tutorial-tooltip ${step.position || 'bottom'}`;
-        tooltip.innerHTML = `
-            <div class="tooltip-header">
-                <h4>${step.title}</h4>
-                <span class="step-counter">${currentStep + 1}/${steps.length}</span>
-            </div>
-            <div class="tooltip-content">
-                <p>${step.content}</p>
-            </div>
-            <div class="tooltip-actions">
-                ${currentStep > 0 ? 
-                    '<button class="prev-step">Previous</button>' : 
-                    ''}
-                ${currentStep < steps.length - 1 ? 
-                    '<button class="next-step">Next</button>' : 
-                    '<button class="finish-tutorial">Finish</button>'}
-            </div>
-        `;
+        tooltip.className = `tutorial-tooltip ${step.position}`;
+        
+        // For intro/outro steps, use a different layout
+        if (step.isIntro || step.isOutro) {
+            tooltip.classList.add('tutorial-modal');
+            tooltip.innerHTML = `
+                <div class="tooltip-header">
+                    <h3>${step.title}</h3>
+                </div>
+                <div class="tooltip-content">
+                    <p>${step.content}</p>
+                </div>
+                <div class="tooltip-actions">
+                    ${step.isIntro ? 
+                        '<button class="next-step primary-button">Start Tour</button>' : 
+                        '<button class="finish-tutorial primary-button">Start Learning</button>'}
+                </div>
+            `;
+            tooltip.style.position = 'fixed';
+            tooltip.style.top = '50%';
+            tooltip.style.left = '50%';
+            tooltip.style.transform = 'translate(-50%, -50%)';
+        } else {
+            // Regular tooltip for normal steps
+            tooltip.innerHTML = `
+                <div class="tooltip-header">
+                    <h4>${step.title}</h4>
+                    <span class="step-counter">${index + 1}/${steps.length}</span>
+                </div>
+                <div class="tooltip-content">
+                    <p>${step.content}</p>
+                </div>
+                <div class="tooltip-actions">
+                    ${index > 0 ? 
+                        '<button class="prev-step">Previous</button>' : 
+                        ''}
+                    ${index < steps.length - 1 ? 
+                        '<button class="next-step">Next</button>' : 
+                        '<button class="finish-tutorial">Finish</button>'}
+                </div>
+            `;
+        }
         
         // Add tooltip to DOM
         document.body.appendChild(tooltip);
         
         // Highlight target element
-        targetElement.classList.add('tutorial-highlight');
-        
-        // Position tooltip relative to target
-        positionTooltip(tooltip, targetElement, step.position || 'bottom');
-        
-        // Add event listeners
-        if (currentStep > 0) {
-            tooltip.querySelector('.prev-step').addEventListener('click', goToPrevStep);
+        const targetElement = document.querySelector(step.target);
+        if (targetElement) {
+            targetElement.classList.add('tutorial-highlight');
         }
         
-        if (currentStep < steps.length - 1) {
-            tooltip.querySelector('.next-step').addEventListener('click', goToNextStep);
+        // Position tooltip relative to target
+        positionTooltip(tooltip, targetElement, step.position);
+        
+        // Add event listeners
+        if (index > 0) {
+            tooltip.querySelector('.prev-step').addEventListener('click', () => {
+                showStep(index - 1);
+            });
+        }
+        
+        if (index < steps.length - 1) {
+            tooltip.querySelector('.next-step').addEventListener('click', () => {
+                showStep(index + 1);
+            });
         } else {
             tooltip.querySelector('.finish-tutorial').addEventListener('click', endTutorial);
         }
@@ -169,6 +216,10 @@ function startTutorial(customSteps = null) {
                 left = targetRect.left - tooltipRect.width - 15;
                 top = targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2);
                 break;
+            case 'center':
+                left = (window.innerWidth / 2) - (tooltipRect.width / 2);
+                top = (window.innerHeight / 2) - (tooltipRect.height / 2);
+                break;
         }
         
         // Apply position
@@ -196,29 +247,6 @@ function startTutorial(customSteps = null) {
         }
     }
     
-    // Go to next step
-    function goToNextStep() {
-        currentStep++;
-        
-        if (currentStep < steps.length) {
-            showCurrentStep();
-        } else {
-            endTutorial();
-        }
-    }
-    
-    // Go to previous step
-    function goToPrevStep() {
-        currentStep--;
-        
-        if (currentStep >= 0) {
-            showCurrentStep();
-        } else {
-            currentStep = 0;
-            showCurrentStep();
-        }
-    }
-    
     // End the tutorial
     function endTutorial() {
         // Remove overlay
@@ -236,7 +264,6 @@ function startTutorial(customSteps = null) {
         });
         
         // Mark tutorial as shown
-        tutorialData.hasShown = true;
         localStorage.setItem('hasSeenTutorial', 'true');
         
         // Show completion message
@@ -246,5 +273,10 @@ function startTutorial(customSteps = null) {
     }
     
     // Start tutorial with first step
-    showCurrentStep();
+    showStep(currentStep);
 }
+
+// Initialize tutorial when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initTutorial();
+});

@@ -1,270 +1,343 @@
 /**
- * Main application initialization
- * Connects all components and sets up event listeners
+ * Main application initialization and coordination
  */
 
-// App state
-const appState = {
-    initialized: false,
-    version: '1.0.0',
-    debug: false,
-    theme: 'light'
-};
-
-// Initialize the application when DOM is loaded
+// Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
+    // Show loading indicator
+    const appLoader = document.getElementById('app-loader');
+    if (appLoader) {
+        appLoader.classList.add('visible');
+    }
+
+    // Initialize components in sequence
+    initializeApplication()
+        .then(() => {
+            console.log('Application initialized successfully');
+            hideLoading();
+        })
+        .catch(error => {
+            console.error('Application initialization failed:', error);
+            showError('Failed to initialize the application. Please try again later.');
+        });
 });
 
-// Main initialization function
-function initializeApp() {
-    if (appState.initialized) return;
-    
-    console.log(`AI Learning Platform v${appState.version} initializing...`);
-    
-    // Check URL parameters for options
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('debug')) {
-        appState.debug = urlParams.get('debug') === 'true';
-    }
-    
-    if (urlParams.has('theme')) {
-        setTheme(urlParams.get('theme'));
-    }
-    
-    // Set up global event listeners
-    setupGlobalEventListeners();
-    
-    // Set up analytics settings link
-    document.getElementById('show-analytics-settings')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (window.AI_Analytics && window.AI_Analytics.showSettings) {
-            window.AI_Analytics.showSettings();
+// Application initialization sequence
+async function initializeApplication() {
+    try {
+        // 1. Initialize configuration and utilities
+        console.log('Loading configuration...');
+        await initializeConfig();
+        
+        // 2. Load user state
+        console.log('Loading user state...');
+        await initUserState();
+        
+        // 3. Initialize lessons
+        console.log('Loading lessons...');
+        await initLessons();
+        
+        // 4. Initialize UI components
+        console.log('Setting up UI...');
+        initCodeEditor();
+        await setupUIComponents();
+        
+        // 5. Set up navigation
+        console.log('Setting up navigation...');
+        setupNavigation();
+        
+        // 6. Initialize analytics (if enabled)
+        if (userState.preferences?.analyticsConsent !== false) {
+            console.log('Initializing analytics...');
+            initAnalytics();
         }
-    });
-    
-    // Setup keyboard shortcuts
-    setupKeyboardShortcuts();
-    
-    // Check if we need to load a specific lesson from URL
-    if (urlParams.has('lesson')) {
-        const lessonId = urlParams.get('lesson');
-        // Wait for lessons to be initialized
-        setTimeout(() => {
-            loadLesson(lessonId);
-        }, 500);
+        
+        // 7. Check daily login and achievements
+        checkDailyLogin();
+        checkAchievements();
+        
+        // 8. Load last viewed lesson or welcome screen
+        await loadInitialContent();
+        
+        return true;
+    } catch (error) {
+        console.error('Initialization error:', error);
+        throw error;
     }
-    
-    appState.initialized = true;
-    console.log('AI Learning Platform initialized successfully');
-    
-    // Dispatch app initialized event
-    window.dispatchEvent(new CustomEvent('app-initialized'));
 }
 
-// Set up global event listeners
-function setupGlobalEventListeners() {
-    // Track errors
-    window.addEventListener('error', function(e) {
-        console.error('Application error:', e.error);
-        
-        if (appState.debug) {
-            showNotification('Error: ' + e.error.message, 'error');
+// Initialize configuration
+async function initializeConfig() {
+    return new Promise(resolve => {
+        // Load any configuration from server or local storage
+        const savedConfig = localStorage.getItem('app_config');
+        if (savedConfig) {
+            try {
+                const config = JSON.parse(savedConfig);
+                window.appConfig = { ...window.appConfig, ...config };
+            } catch (e) {
+                console.error('Error parsing stored config:', e);
+            }
         }
         
-        // Track in analytics
-        if (window.AI_Analytics && window.AI_Analytics.trackEvent) {
-            window.AI_Analytics.trackEvent('app_error', {
-                message: e.error.message,
-                source: e.filename,
-                line: e.lineno,
-                column: e.colno
+        resolve();
+    });
+}
+
+// Set up UI components not handled by other modules
+async function setupUIComponents() {
+    return new Promise(resolve => {
+        // Setup theme
+        const preferredTheme = localStorage.getItem('theme') || 
+                              (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', preferredTheme);
+        
+        // Setup theme toggle if it exists
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
             });
         }
+        
+        // Initialize other UI components
+        const menuToggle = document.getElementById('menu-toggle');
+        if (menuToggle) {
+            menuToggle.addEventListener('click', () => {
+                document.body.classList.toggle('menu-open');
+            });
+        }
+        
+        resolve();
+    });
+}
+
+// Set up SPA navigation
+function setupNavigation() {
+    // Get all navigation links
+    const navLinks = document.querySelectorAll('[data-nav]');
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const view = link.getAttribute('data-nav');
+            navigateToView(view);
+        });
     });
     
-    // Handle unhandled promise rejections
-    window.addEventListener('unhandledrejection', function(e) {
-        console.error('Unhandled promise rejection:', e.reason);
-        
-        if (appState.debug) {
-            showNotification('Promise error: ' + e.reason, 'error');
+    // Handle browser back/forward navigation
+    window.addEventListener('popstate', (event) => {
+        if (event.state && event.state.view) {
+            showView(event.state.view, false);
         }
     });
     
-    // Handle window resize for visualizations
-    window.addEventListener('resize', debounce(function() {
-        // Resize canvas if visualization is active
-        const canvas = document.getElementById('visualization-canvas');
-        if (canvas && visualizationState && visualizationState.type) {
-            // Adjust canvas size
-            adjustCanvasSize();
+    // Check for deep linking on page load
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+        navigateToView(hash);
+    }
+}
+
+// Navigate to a view
+function navigateToView(view) {
+    showView(view);
+    
+    // Update URL without reloading page
+    const url = `#${view}`;
+    history.pushState({ view: view }, '', url);
+}
+
+// Show a specific view, hiding others
+function showView(viewId, updateUserState = true) {
+    // Hide all views
+    const views = document.querySelectorAll('[data-view]');
+    views.forEach(v => v.classList.add('hidden'));
+    
+    // Show requested view
+    const viewToShow = document.querySelector(`[data-view="${viewId}"]`);
+    if (viewToShow) {
+        viewToShow.classList.remove('hidden');
+        
+        // Update active navigation
+        const navLinks = document.querySelectorAll('[data-nav]');
+        navLinks.forEach(link => {
+            if (link.getAttribute('data-nav') === viewId) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // Update user state if needed
+        if (updateUserState && typeof saveUserState === 'function') {
+            saveUserState({ lastView: viewId });
+        }
+        
+        // Track view in analytics
+        if (typeof trackEvent === 'function') {
+            trackEvent('view_changed', { view: viewId });
+        }
+        
+        // Close mobile menu if open
+        document.body.classList.remove('menu-open');
+    }
+}
+
+// Load initial content based on user state
+async function loadInitialContent() {
+    // If user was in the middle of a lesson, load it
+    if (userState.currentLesson) {
+        const lessonView = document.querySelector('[data-view="lessons"]');
+        if (lessonView) {
+            showView('lessons');
+            loadLesson(userState.currentLesson);
+        }
+    } else {
+        // Otherwise show welcome screen
+        showView('welcome');
+    }
+}
+
+// Handle daily login check
+function checkDailyLogin() {
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (!userState.lastLoginDate || userState.lastLoginDate !== today) {
+        // It's a new day, check for streak
+        let isConsecutiveDay = false;
+        
+        if (userState.lastLoginDate) {
+            const lastDate = new Date(userState.lastLoginDate);
+            const currentDate = new Date();
             
-            // Redraw visualization
-            switch(visualizationState.type) {
-                case 'intro':
-                    drawIntroVisualization();
-                    break;
-                case 'decision-tree':
-                    drawDecisionTree();
-                    break;
-                case 'neural-network':
-                    drawNeuralNetwork();
-                    break;
-                case 'reinforcement':
-                    drawRLEnvironment();
-                    break;
-            }
-        }
-    }, 250));
-    
-    // Handle theme toggle if it exists
-    document.querySelector('.theme-toggle')?.addEventListener('click', function() {
-        toggleTheme();
-    });
-}
-
-// Set application theme
-function setTheme(theme) {
-    if (theme !== 'light' && theme !== 'dark') {
-        theme = 'light'; // Default to light
-    }
-    
-    document.body.setAttribute('data-theme', theme);
-    appState.theme = theme;
-    localStorage.setItem('theme', theme);
-}
-
-// Toggle between light and dark theme
-function toggleTheme() {
-    const newTheme = appState.theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-}
-
-// Setup keyboard shortcuts
-function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', function(e) {
-        // Ctrl+Enter to run code
-        if (e.ctrlKey && e.key === 'Enter') {
-            if (!document.getElementById('code-container').classList.contains('hidden')) {
-                document.getElementById('run-code').click();
-            }
+            // Check if yesterday
+            lastDate.setDate(lastDate.getDate() + 1);
+            isConsecutiveDay = lastDate.toISOString().split('T')[0] === today;
         }
         
-        // Alt+H for hint
-        if (e.altKey && e.key === 'h') {
-            if (!document.getElementById('code-container').classList.contains('hidden')) {
-                document.getElementById('get-hint').click();
-            }
+        // Update streak
+        if (isConsecutiveDay) {
+            userState.streak = (userState.streak || 0) + 1;
+        } else {
+            userState.streak = 1;
         }
         
-        // Toggle debug mode with Ctrl+Shift+D
-        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-            appState.debug = !appState.debug;
-            showNotification('Debug mode: ' + (appState.debug ? 'enabled' : 'disabled'), 'info');
-        }
-    });
-}
-
-// Adjust canvas size based on container
-function adjustCanvasSize() {
-    const canvas = document.getElementById('visualization-canvas');
-    const container = document.getElementById('visualization-container');
-    
-    if (canvas && container) {
-        const containerWidth = container.clientWidth - 30; // Adjust for padding
+        // Update login date
+        userState.lastLoginDate = today;
         
-        // Set canvas width while maintaining aspect ratio
-        canvas.width = containerWidth;
-        canvas.height = containerWidth * 0.6; // Maintain 5:3 aspect ratio
+        // Save changes
+        saveUserState();
         
-        // Reset context after resize
-        if (ctx) {
-            ctx = canvas.getContext('2d');
-        }
+        // Show login reward after short delay
+        setTimeout(() => {
+            showDailyReward(userState.streak);
+        }, 1500);
     }
 }
 
-// Create a debounce function for handling resize events
-function debounce(func, wait) {
-    let timeout;
-    return function() {
-        const context = this;
-        const args = arguments;
-        clearTimeout(timeout);
-        timeout = setTimeout(function() {
-            func.apply(context, args);
-        }, wait);
-    };
-}
-
-// Handle loading screen
-function showLoadingScreen() {
-    const loader = document.createElement('div');
-    loader.className = 'loading-screen';
-    loader.innerHTML = `
-        <div class="loader-content">
-            <div class="loader-spinner"></div>
-            <p>Loading AI Learning Platform...</p>
+// Show daily reward popup
+function showDailyReward(streakDays) {
+    // Base reward is 5 coins
+    let reward = 5;
+    
+    // Bonus for streak
+    if (streakDays > 1) {
+        reward += Math.min(streakDays, 5); // Max +5 bonus for 5+ day streak
+    }
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'modal daily-reward-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="reward-header">
+                <i class="fas fa-calendar-check"></i>
+                <h3>Daily Login Reward</h3>
+            </div>
+            <div class="reward-body">
+                <p>Welcome back! You've earned:</p>
+                <div class="coins-reward">
+                    <i class="fas fa-coins"></i>
+                    <span>${reward} coins</span>
+                </div>
+                ${streakDays > 1 ? `
+                    <div class="streak-bonus">
+                        <i class="fas fa-fire"></i>
+                        <span>${streakDays} day streak!</span>
+                    </div>
+                ` : ''}
+            </div>
+            <button class="primary-button" id="claim-reward">Claim Reward</button>
         </div>
     `;
     
-    document.body.appendChild(loader);
+    document.body.appendChild(modal);
     
-    return {
-        hide: function() {
-            loader.classList.add('fade-out');
-            setTimeout(() => {
-                document.body.removeChild(loader);
-            }, 500);
-        }
-    };
-}
-
-// Display system message in notification center
-function showSystemMessage(title, message) {
-    const notification = document.createElement('div');
-    notification.className = 'system-notification';
-    notification.innerHTML = `
-        <h3>${title}</h3>
-        <p>${message}</p>
-        <button class="close-notification">Dismiss</button>
-    `;
-    
-    document.body.appendChild(notification);
-    
+    // Add animation
     setTimeout(() => {
-        notification.classList.add('show');
+        modal.classList.add('visible');
     }, 10);
     
-    notification.querySelector('.close-notification').addEventListener('click', () => {
-        notification.classList.remove('show');
+    // Add event listener to claim button
+    document.getElementById('claim-reward').addEventListener('click', () => {
+        // Award the coins
+        awardCoins(reward, 'daily login reward');
+        
+        // Close modal with animation
+        modal.classList.remove('visible');
         setTimeout(() => {
-            notification.remove();
+            modal.remove();
         }, 300);
     });
 }
 
-// Show welcome message for new users (only once)
-function showWelcomeMessage() {
-    if (!localStorage.getItem('welcomeMessageSeen')) {
-        setTimeout(() => {
-            showSystemMessage(
-                'Welcome to AI Learning Platform!', 
-                'Start your journey into AI by selecting a lesson from the sidebar. Complete tasks to earn coins and unlock more advanced content!'
-            );
-            localStorage.setItem('welcomeMessageSeen', 'true');
-        }, 3000);
+// Show loading indicator
+function showLoading() {
+    const loader = document.getElementById('app-loader');
+    if (loader) {
+        loader.classList.add('visible');
     }
 }
 
-// Initialize loading screen
-const loader = showLoadingScreen();
+// Hide loading indicator
+function hideLoading() {
+    const loader = document.getElementById('app-loader');
+    if (loader) {
+        loader.classList.remove('visible');
+        
+        // Completely remove after animation completes
+        setTimeout(() => {
+            loader.style.display = 'none';
+        }, 300);
+    }
+}
 
-// Hide loading screen after everything is loaded
-window.addEventListener('load', function() {
-    setTimeout(() => {
-        loader.hide();
-        showWelcomeMessage();
-    }, 500);
-});
+// Show error message
+function showError(message) {
+    hideLoading();
+    
+    const errorContainer = document.getElementById('app-error');
+    const errorMessage = document.getElementById('error-message');
+    
+    if (errorContainer && errorMessage) {
+        errorMessage.textContent = message;
+        errorContainer.style.display = 'flex';
+        
+        // Add retry button handler
+        document.getElementById('error-retry').addEventListener('click', () => {
+            window.location.reload();
+        });
+    } else {
+        // Fallback to alert if error container not found
+        alert(`Error: ${message}`);
+    }
+}
+
+// Export global functions
+window.navigateToView = navigateToView;
+window.showLoading = showLoading;
+window.hideLoading = hideLoading;

@@ -141,16 +141,82 @@ function simulateCodeExecution(code) {
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
-    loadUserState();
-    initializeLessons();
-    setupEventListeners();
-    checkDailyLogin();
-    
-    // Show welcome animation
-    setTimeout(() => {
-        document.querySelector('.logo').classList.add('animated');
-    }, 300);
+    // Initialize components in the correct order
+    initUserState()
+        .then(() => {
+            initLessons();
+            initCodeEditor();
+            initUIComponents();
+        })
+        .catch(error => {
+            console.error("Initialization error:", error);
+            showNotification("Failed to initialize application. Please refresh the page.", "error");
+        });
 });
+
+// Initialize UI components that aren't part of other modules
+function initUIComponents() {
+    // Setup theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+        
+        // Set initial theme based on user preference or system preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    }
+    
+    // Setup navigation menu for mobile
+    const menuToggle = document.getElementById('menu-toggle');
+    const sideNav = document.getElementById('side-nav');
+    if (menuToggle && sideNav) {
+        menuToggle.addEventListener('click', () => {
+            sideNav.classList.toggle('visible');
+        });
+    }
+}
+
+// Toggle between light and dark theme
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    showNotification(`Switched to ${newTheme} theme`, "info");
+}
+
+// Show notifications to the user
+function showNotification(message, type = 'info') {
+    const notificationContainer = document.getElementById('notification-container');
+    if (!notificationContainer) {
+        const container = document.createElement('div');
+        container.id = 'notification-container';
+        document.body.appendChild(container);
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    document.getElementById('notification-container').appendChild(notification);
+    
+    // Remove notification after 5 seconds
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 5000);
+}
+
+// Export functions for use in other modules
+window.showNotification = showNotification;
 
 // Set up event listeners
 function setupEventListeners() {

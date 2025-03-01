@@ -10,6 +10,437 @@ let visualizationState = {
     step: 0
 };
 
+// Available visualizations for different lesson types
+const visualizations = {
+    'decision-trees': setupDecisionTreeViz,
+    'neural-networks': setupNeuralNetworkViz,
+    'reinforcement': setupReinforcementLearningViz,
+    // Add more visualizations as needed
+};
+
+/**
+ * Prepare the visualization for a specific lesson
+ * @param {string} lessonId - The ID of the lesson
+ */
+function prepareVisualization(lessonId) {
+    const visualizationContainer = document.getElementById('visualization-container');
+    
+    if (!visualizationContainer) return;
+    
+    // Clear previous visualization
+    visualizationContainer.innerHTML = '';
+    
+    // Check if we have a visualization for this lesson
+    if (visualizations[lessonId]) {
+        visualizationContainer.classList.remove('hidden');
+        visualizations[lessonId](visualizationContainer);
+    } else {
+        visualizationContainer.classList.add('hidden');
+    }
+}
+
+/**
+ * Update visualization based on user code
+ * @param {string} lessonId - The ID of the lesson
+ * @param {string} code - The user's code
+ */
+function updateVisualization(lessonId, code) {
+    // Only perform updates for lessons that have interactive visualizations
+    switch (lessonId) {
+        case 'decision-trees':
+            updateDecisionTreeViz(code);
+            break;
+        case 'neural-networks':
+            updateNeuralNetworkViz(code);
+            break;
+        case 'reinforcement':
+            updateReinforcementLearningViz(code);
+            break;
+        default:
+            // No visualization to update
+            break;
+    }
+}
+
+/**
+ * Setup visualization for decision trees lesson
+ * @param {HTMLElement} container - The container element for the visualization
+ */
+function setupDecisionTreeViz(container) {
+    // Create canvas and controls for the decision tree visualization
+    container.innerHTML = `
+        <h3>Decision Tree Visualization</h3>
+        <div class="viz-controls">
+            <div class="input-group">
+                <label for="feature1-input">Feature 1:</label>
+                <input type="range" id="feature1-input" min="0" max="10" value="5" step="0.5">
+                <span id="feature1-value">5</span>
+            </div>
+            <div class="input-group">
+                <label for="feature2-input">Feature 2:</label>
+                <input type="range" id="feature2-input" min="0" max="10" value="5" step="0.5">
+                <span id="feature2-value">5</span>
+            </div>
+        </div>
+        <div class="viz-output">
+            <p>Classification: <span id="classification-result">C</span></p>
+        </div>
+        <div class="viz-canvas">
+            <canvas id="decision-tree-canvas" width="400" height="300"></canvas>
+        </div>
+    `;
+    
+    // Add event listeners for input controls
+    const feature1Input = document.getElementById('feature1-input');
+    const feature2Input = document.getElementById('feature2-input');
+    
+    const updateFeatureDisplay = () => {
+        document.getElementById('feature1-value').textContent = feature1Input.value;
+        document.getElementById('feature2-value').textContent = feature2Input.value;
+        
+        // Try to run the classification with current values
+        try {
+            updateDecisionTreeViz();
+        } catch (e) {
+            // Ignore errors, user may not have implemented the function yet
+        }
+    };
+    
+    feature1Input.addEventListener('input', updateFeatureDisplay);
+    feature2Input.addEventListener('input', updateFeatureDisplay);
+    
+    // Initial draw of the visualization
+    drawDecisionTreeBackground();
+}
+
+/**
+ * Draw the background grid for decision tree visualization
+ */
+function drawDecisionTreeBackground() {
+    const canvas = document.getElementById('decision-tree-canvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw grid
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 1;
+    
+    // Draw decision boundaries
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 2;
+    
+    // Horizontal line at y = 3
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height - (3/10 * canvas.height));
+    ctx.lineTo(canvas.width, canvas.height - (3/10 * canvas.height));
+    ctx.stroke();
+    
+    // Vertical line at x = 5
+    ctx.beginPath();
+    ctx.moveTo(5/10 * canvas.width, 0);
+    ctx.lineTo(5/10 * canvas.width, canvas.height);
+    ctx.stroke();
+    
+    // Draw legend for regions
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillText('Region A', 7/10 * canvas.width, 2/10 * canvas.height);
+    
+    ctx.fillStyle = '#3498db';
+    ctx.fillText('Region B', 2/10 * canvas.width, 8/10 * canvas.height);
+    
+    ctx.fillStyle = '#2ecc71';
+    ctx.fillText('Region C', 7/10 * canvas.width, 8/10 * canvas.height);
+    ctx.fillText('Region C', 2/10 * canvas.width, 2/10 * canvas.height);
+}
+
+/**
+ * Update the decision tree visualization based on user code
+ */
+function updateDecisionTreeViz(code) {
+    const feature1Value = parseFloat(document.getElementById('feature1-input').value);
+    const feature2Value = parseFloat(document.getElementById('feature2-input').value);
+    const resultDisplay = document.getElementById('classification-result');
+    
+    // Try to get the classify function from user's code
+    let classify;
+    try {
+        if (code) {
+            // Extract the user's classify function
+            const functionMatch = code.match(/function\s+classify\s*\([\s\w,]*\)\s*{[\s\S]*?}/);
+            if (functionMatch) {
+                eval('classify = ' + functionMatch[0]);
+            }
+        }
+    } catch (e) {
+        console.error("Error extracting classify function:", e);
+    }
+    
+    // If we couldn't get the function, use a default implementation
+    if (typeof classify !== 'function') {
+        classify = function(f1, f2) {
+            if (f1 > 5 && f2 < 3) return "A";
+            if (f1 < 5 && f2 > 7) return "B";
+            return "C";
+        };
+    }
+    
+    // Get the classification result
+    try {
+        const result = classify(feature1Value, feature2Value);
+        resultDisplay.textContent = result;
+        
+        // Update the point on the visualization
+        updatePointOnDecisionTree(feature1Value, feature2Value, result);
+    } catch (e) {
+        resultDisplay.textContent = "Error";
+        console.error("Error classifying point:", e);
+    }
+}
+
+/**
+ * Update the point position on the decision tree visualization
+ */
+function updatePointOnDecisionTree(x, y, classification) {
+    const canvas = document.getElementById('decision-tree-canvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Redraw the background
+    drawDecisionTreeBackground();
+    
+    // Map input values to canvas coordinates
+    const canvasX = (x / 10) * canvas.width;
+    const canvasY = canvas.height - ((y / 10) * canvas.height);
+    
+    // Set point color based on classification
+    let pointColor = '#2ecc71'; // Default green for C
+    if (classification === 'A') {
+        pointColor = '#e74c3c'; // Red for A
+    } else if (classification === 'B') {
+        pointColor = '#3498db'; // Blue for B
+    }
+    
+    // Draw the point
+    ctx.fillStyle = pointColor;
+    ctx.beginPath();
+    ctx.arc(canvasX, canvasY, 10, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Add a border to the point
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
+/**
+ * Setup visualization for neural networks lesson
+ * @param {HTMLElement} container - The container element for the visualization
+ */
+function setupNeuralNetworkViz(container) {
+    container.innerHTML = `
+        <h3>Neural Network Visualization</h3>
+        <div class="viz-controls">
+            <div class="input-group">
+                <label for="nn-input1">Input 1 (x₁):</label>
+                <input type="range" id="nn-input1" min="-5" max="5" value="1" step="0.1">
+                <span id="nn-input1-value">1</span>
+            </div>
+            <div class="input-group">
+                <label for="nn-input2">Input 2 (x₂):</label>
+                <input type="range" id="nn-input2" min="-5" max="5" value="0.5" step="0.1">
+                <span id="nn-input2-value">0.5</span>
+            </div>
+            <div class="input-group">
+                <label for="nn-weight1">Weight 1 (w₁):</label>
+                <input type="range" id="nn-weight1" min="-2" max="2" value="0.5" step="0.1">
+                <span id="nn-weight1-value">0.5</span>
+            </div>
+            <div class="input-group">
+                <label for="nn-weight2">Weight 2 (w₂):</label>
+                <input type="range" id="nn-weight2" min="-2" max="2" value="0.5" step="0.1">
+                <span id="nn-weight2-value">0.5</span>
+            </div>
+            <div class="input-group">
+                <label for="nn-bias">Bias:</label>
+                <input type="range" id="nn-bias" min="-2" max="2" value="0" step="0.1">
+                <span id="nn-bias-value">0</span>
+            </div>
+        </div>
+        <div class="viz-output">
+            <p>Neuron Output: <span id="neuron-output">?</span></p>
+        </div>
+        <div class="viz-canvas">
+            <canvas id="neural-network-canvas" width="400" height="300"></canvas>
+        </div>
+    `;
+    
+    // Add event listeners for all sliders
+    const inputs = ['nn-input1', 'nn-input2', 'nn-weight1', 'nn-weight2', 'nn-bias'];
+    inputs.forEach(inputId => {
+        const slider = document.getElementById(inputId);
+        slider.addEventListener('input', () => {
+            document.getElementById(`${inputId}-value`).textContent = slider.value;
+            updateNeuralNetworkViz();
+        });
+    });
+    
+    // Initial draw
+    drawNeuralNetwork();
+}
+
+/**
+ * Update the neural network visualization
+ */
+function updateNeuralNetworkViz(code) {
+    // Get current values from sliders
+    const x1 = parseFloat(document.getElementById('nn-input1').value);
+    const x2 = parseFloat(document.getElementById('nn-input2').value);
+    const w1 = parseFloat(document.getElementById('nn-weight1').value);
+    const w2 = parseFloat(document.getElementById('nn-weight2').value);
+    const bias = parseFloat(document.getElementById('nn-bias').value);
+    
+    // Try to get the neuron function from user's code
+    let neuron;
+    try {
+        if (code) {
+            // Extract the user's neuron function
+            const functionMatch = code.match(/function\s+neuron\s*\([\s\w,]*\)\s*{[\s\S]*?}/);
+            if (functionMatch) {
+                eval('neuron = ' + functionMatch[0]);
+            }
+        }
+    } catch (e) {
+        console.error("Error extracting neuron function:", e);
+    }
+    
+    // If we couldn't get the function, use a default implementation
+    if (typeof neuron !== 'function') {
+        neuron = function(x1, x2, w1, w2, bias) {
+            const sum = x1 * w1 + x2 * w2 + bias;
+            return 1 / (1 + Math.exp(-sum)); // Sigmoid activation
+        };
+    }
+    
+    // Calculate the output
+    try {
+        const output = neuron(x1, x2, w1, w2, bias);
+        document.getElementById('neuron-output').textContent = output.toFixed(4);
+        
+        // Update the visualization
+        drawNeuralNetwork(x1, x2, w1, w2, bias, output);
+    } catch (e) {
+        document.getElementById('neuron-output').textContent = "Error";
+        console.error("Error calculating neuron output:", e);
+    }
+}
+
+/**
+ * Draw the neural network visualization
+ */
+function drawNeuralNetwork(x1, x2, w1, w2, bias, output) {
+    const canvas = document.getElementById('neural-network-canvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Define coordinates
+    const inputX = 50;
+    const hiddenX = 200;
+    const outputX = 350;
+    const input1Y = 100;
+    const input2Y = 200;
+    const hiddenY = 150;
+    const outputY = 150;
+    
+    // Draw nodes
+    function drawNode(x, y, label, value = null) {
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.fillStyle = '#f2f2f2';
+        ctx.fill();
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, x, y);
+        
+        if (value !== null) {
+            ctx.font = '12px Arial';
+            ctx.fillText(value, x, y + 30);
+        }
+    }
+    
+    // Draw connections
+    function drawConnection(x1, y1, x2, y2, weight) {
+        const color = weight >= 0 ? 
+            `rgba(52, 152, 219, ${Math.min(Math.abs(weight), 1)})` : 
+            `rgba(231, 76, 60, ${Math.min(Math.abs(weight), 1)})`;
+        
+        const lineWidth = Math.max(1, Math.abs(weight) * 3);
+        
+        ctx.beginPath();
+        ctx.moveTo(x1 + 20, y1); // Starting from the right edge of the node
+        ctx.lineTo(x2 - 20, y2); // Ending at the left edge of the node
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+        
+        // Draw weight value
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        ctx.font = '12px Arial';
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'center';
+        ctx.fillText(weight.toFixed(1), midX, midY - 10);
+    }
+    
+    // Draw input nodes
+    drawNode(inputX, input1Y, "x₁", x1?.toFixed(1));
+    drawNode(inputX, input2Y, "x₂", x2?.toFixed(1));
+    
+    // Draw hidden node (neuron)
+    drawNode(hiddenX, hiddenY, "Σ");
+    
+    // Draw output node
+    const outputColor = output >= 0.5 ? 
+        `rgba(46, 204, 113, ${Math.max(0.3, output)})` : 
+        `rgba(255, 255, 255, ${1 - Math.max(0.3, output)})`;
+    
+    ctx.beginPath();
+    ctx.arc(outputX, outputY, 20, 0, Math.PI * 2);
+    ctx.fillStyle = outputColor;
+    ctx.fill();
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+    ctx.fillText("σ", outputX, outputY);
+    
+    if (output !== undefined) {
+        ctx.font = '12px Arial';
+        ctx.fillText(output.toFixed(2), outputX, outputY + 30);
+    }
+    
+    // Draw connections
+    if (w1 !== undefined && w2 !== undefined) {
+        drawConnection(inputX, input1Y, hiddenX, hiddenY, w1);
+        drawConnection(inputX, input2Y, hiddenX, hiddenY, w2);
+    }
+    drawConnection(hiddenX, hiddenY, outputX, outputY, 1); // Bias connection
+}
+
 /**
  * Prepares the visualization area for the current lesson
  * @param {Object} lessonData - The current lesson data
