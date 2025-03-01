@@ -107,4 +107,100 @@
 @media screen and (max-height: 500px) and (orientation: landscape) {
   .modal-content {
     max-height: 98vh; 
-    max-width: 
+    max-width: 80vw;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+  }
+  
+  .modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+}
+
+/* Fix menu overlap on smaller screens */
+@media screen and (max-width: 768px) {
+  .main-nav ul {
+    flex-wrap: wrap;
+  }
+  
+  .main-nav li {
+    flex: 1;
+    text-align: center;
+    min-width: 80px;
+  }
+  
+  .main-nav a {
+    padding: 8px 10px;
+    font-size: 0.9em;
+  }
+}
+
+/* Fix touch targets for mobile */
+@media screen and (max-width: 767px) {
+  .lesson-item, 
+  button,
+  .main-nav a,
+  .category-header {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Fix focus issues on mobile */
+  a:focus,
+  button:focus,
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+/* Fix overlapping elements in visualization container */
+@media screen and (max-width: 600px) {
+  #visualization-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  #visualization-controls button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Fix footer text spacing on small screens */
+@media screen and (max-width: 480px) {
+  .footer-content {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .footer-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .footer-links a {
+    padding: 5px 8px;
+  }
+}
+
+/* Fix content padding on very small screens */
+@media screen and (max-width: 350px) {
+  .content {
+    padding: 10px 5px;
+  }
+  
+  #lesson-container {
+    padding: 10px;
+  }
+  
+  #lesson-title {
+    font-size: 1.4rem;
+  }
+}
