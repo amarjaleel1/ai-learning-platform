@@ -1,0 +1,44 @@
+name: Run Puppeteer Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Start server in background
+      run: |
+        npm start &
+        sleep 5 # Give the server time to start
+    
+    - name: Run browser tests
+      run: npm run test:browser
+    
+    - name: Run accessibility tests
+      run: npm run test:accessibility
+      
+    - name: Check if server is running
+      run: |
+        curl -s http://localhost:3000 > /dev/null
+        if [ $? -ne 0 ]; then
+          echo "Server is not running"
+          exit 1
+        else
+          echo "Server is running properly"
+        fi
