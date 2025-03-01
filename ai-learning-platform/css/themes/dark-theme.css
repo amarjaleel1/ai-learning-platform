@@ -1,0 +1,158 @@
+/* Dark theme for AI Learning Platform */
+
+:root.dark-theme {
+    --primary-color: #bb86fc;
+    --primary-dark: #9056d4;
+    --secondary-color: #03dac6;
+    --background-color: #121212;
+    --surface-color: #1e1e1e;
+    --error-color: #cf6679;
+    --text-primary: #e1e1e1;
+    --text-secondary: #a0a0a0;
+    --border-color: #333333;
+    --dark-bg: #121212;
+    --darker-bg: #0a0a0a;
+    --light-text: #e1e1e1;
+    --dark-text: #e1e1e1;
+    --success: #4caf50;
+    --warning: #ff9800;
+    --info: #2196f3;
+    --light-bg: #2c2c2c;
+    --white: #1e1e1e;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --transition: all 0.3s ease;
+}
+
+/* Override specific elements for dark theme */
+.dark-theme body {
+    background-color: var(--background-color);
+    color: var(--text-primary);
+}
+
+.dark-theme header {
+    background-color: var(--dark-bg);
+}
+
+.dark-theme .sidebar {
+    background-color: var(--dark-bg);
+    border-right: 1px solid var(--border-color);
+}
+
+.dark-theme .sidebar h2 {
+    color: var(--light-text);
+}
+
+.dark-theme #lesson-list .lesson-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark-theme #lesson-list .lesson-item.active {
+    background-color: rgba(187, 134, 252, 0.15);
+}
+
+.dark-theme #lesson-container,
+.dark-theme #code-container,
+.dark-theme #visualization-container,
+.dark-theme .dashboard-container,
+.dark-theme .dashboard-card {
+    background-color: var(--surface-color);
+    box-shadow: var(--shadow);
+}
+
+.dark-theme .stat-item {
+    background-color: var(--dark-bg);
+}
+
+.dark-theme #code-editor {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+    border-color: var(--border-color);
+}
+
+.dark-theme footer {
+    background-color: var(--dark-bg);
+    border-top: 1px solid var(--border-color);
+}
+
+.dark-theme .feature {
+    background-color: var(--surface-color);
+}
+
+.dark-theme #get-hint {
+    border-color: var(--primary-color);
+}
+
+.dark-theme .notification {
+    background-color: var(--surface-color);
+    color: var(--text-primary);
+}
+
+.dark-theme .modal-content {
+    background-color: var(--surface-color);
+    color: var(--text-primary);
+}
+
+.dark-theme .modal-header {
+    border-bottom-color: var(--border-color);
+}
+
+.dark-theme .close-button {
+    color: var(--text-secondary);
+}
+
+.dark-theme .close-button:hover {
+    color: var(--text-primary);
+}
+
+.dark-theme .recommended-lesson {
+    background-color: var(--dark-bg);
+}
+
+.dark-theme .learning-path-visualization {
+    background-color: var(--surface-color);
+}
+
+.dark-theme .progress-container {
+    background-color: var(--dark-bg);
+}
+
+.dark-theme .category-progress-container {
+    background-color: var(--dark-bg);
+}
+
+/* Scrollbar customization for dark theme */
+.dark-theme ::-webkit-scrollbar-track {
+    background: #333;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb {
+    background: #666;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: white;
+    margin-left: 10px;
+    transition: background-color 0.3s;
+}
+
+.theme-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark-theme .theme-toggle {
+    color: var(--text-primary);
+}

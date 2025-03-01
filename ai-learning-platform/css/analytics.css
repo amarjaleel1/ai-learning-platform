@@ -95,3 +95,172 @@ input:checked + .toggle-slider:before {
     border-top: 1px solid #eee;
     text-align: right;
 }
+
+/* Analytics settings dialog */
+.analytics-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.analytics-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.analytics-modal {
+    background: white;
+    border-radius: 8px;
+    padding: 25px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    transform: translateY(20px);
+    transition: transform 0.3s;
+}
+
+.analytics-overlay.show .analytics-modal {
+    transform: translateY(0);
+}
+
+.analytics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.analytics-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.analytics-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+}
+
+.analytics-close:hover {
+    color: var(--text-primary);
+}
+
+.analytics-options {
+    margin-bottom: 20px;
+}
+
+.analytics-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.analytics-option:hover {
+    background-color: var(--surface-color);
+}
+
+.analytics-checkbox {
+    margin-right: 15px;
+    position: relative;
+}
+
+.analytics-checkbox input {
+    opacity: 0;
+    position: absolute;
+}
+
+.analytics-checkbox label {
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+    background: #ccc;
+    border-radius: 20px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.analytics-checkbox label::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s;
+}
+
+.analytics-checkbox input:checked + label {
+    background: var(--primary-color);
+}
+
+.analytics-checkbox input:checked + label::after {
+    transform: translateX(20px);
+}
+
+.analytics-label {
+    display: flex;
+    flex-direction: column;
+}
+
+.analytics-label h4 {
+    margin: 0 0 5px 0;
+    color: var(--text-primary);
+}
+
+.analytics-label p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.analytics-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.analytics-footer button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.analytics-save {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+}
+
+.analytics-save:hover {
+    background-color: var(--primary-dark);
+}
+
+.analytics-cancel {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.analytics-cancel:hover {
+    background-color: var(--surface-color);
+}
