@@ -20,6 +20,9 @@
     <link rel="stylesheet" href="css/tutorial.css">
     <link rel="stylesheet" href="css/analytics.css">
     <link rel="stylesheet" href="css/loader.css">
+    <link rel="stylesheet" href="css/code-editor.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/lessons.css">
 </head>
 <body>
     <header role="banner">
@@ -147,8 +150,8 @@
         </div>
     </footer>
 
-    <!-- Loading indicator -->
-    <div id="app-loader" class="app-loader" style="display: none;">
+    <!-- Loading indicator - Updated to ensure visibility -->
+    <div id="app-loader" class="app-loader">
         <div class="loader-spinner" aria-hidden="true"></div>
         <p role="status">Loading...</p>
     </div>
@@ -166,17 +169,40 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-javascript.min.js"></script>
     
-    <!-- Legacy scripts for backward compatibility -->
+    <!-- Utility scripts (load first) -->
+    <script src="js/utils/config.js"></script>
+    <script src="js/utils/helpers.js"></script>
+    <script src="js/utils/api-client.js"></script>
+    <script src="js/utils/event-bus.js"></script>
+    
+    <!-- Core functionality -->
     <script src="js/main.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/storage.js"></script>
+    
+    <!-- Lesson content -->
+    <script src="lessons/lesson_data.js"></script>
     <script src="lessons/additional_lessons.js"></script>
+    
+    <!-- Feature modules -->
     <script src="js/lessons.js"></script>
     <script src="js/visualization.js"></script>
     <script src="js/code-editor.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/welcome.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/achievements.js"></script>
     <script src="js/analytics.js"></script>
+    <script src="js/feedback.js"></script>
     
-    <!-- ES6 module system -->
+    <!-- UI components -->
+    <script src="js/ui/notification.js"></script>
+    <script src="js/ui/modal.js"></script>
+    <script src="js/ui/tooltip.js"></script>
+    <script src="js/ui/theme-switcher.js"></script>
+    <script src="js/ui/mobile-menu.js"></script>
+    
+    <!-- ES6 module system - Load this last -->
     <script type="module" src="js/module.js"></script>
 </body>
 </html>

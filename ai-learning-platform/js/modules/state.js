@@ -1,222 +1,157 @@
 /**
  * State management module for AI Learning Platform
- * Handles user state and application state
+ * Handles user state, progress, and persistence
  */
 
 // Default user state
 const defaultUserState = {
-    username: 'Guest',
-    coins: 0,
+    username: "Guest",
+    coins: 100,
     completedLessons: [],
     currentLesson: null,
     achievements: [],
-    lastLoginDate: null,
-    streak: 0,
-    settings: {
-        theme: 'light',
+    lastActive: new Date().toISOString(),
+    preferences: {
+        theme: "light",
         codeEditorFontSize: 14,
         notifications: true
     }
 };
 
-// User state storage key
-const USER_STATE_KEY = 'aiLearningPlatform_userState';
-
 // Current user state
 let userState = { ...defaultUserState };
 
 /**
- * Initialize user state from localStorage or use default
+ * Initialize user state from local storage or defaults
  */
-export function initUserState() {
+export async function initUserState() {
+    console.log("Initializing user state");
     try {
-        const savedState = localStorage.getItem(USER_STATE_KEY);
-        
+        const savedState = localStorage.getItem('aiLearningUserState');
         if (savedState) {
-            // Merge saved state with default state to handle any new properties
-            const parsedState = JSON.parse(savedState);
-            userState = {
-                ...defaultUserState,  // Default values
-                ...parsedState // Saved values override defaults
-            };
+            console.log("Found saved user state");
+            userState = JSON.parse(savedState);
+            userState.lastActive = new Date().toISOString();
+        } else {
+            console.log("No saved state found, using defaults");
+            userState = { ...defaultUserState };
         }
         
-        // Check for daily login streak
-        checkLoginStreak();
-        
-        // Update UI elements if needed
-        updateUIFromState(userState);
-        
-        console.log("User state initialized:", userState);
+        // Update UI with user state
+        updateUIWithUserState();
+        return userState;
     } catch (error) {
         console.error("Error initializing user state:", error);
-        // Continue with default state if there was an error
+        userState = { ...defaultUserState };
+        return userState;
     }
-    
-    return userState;
-}
-
-/**
- * Save current user state to localStorage
- * @param {Object} stateUpdate - The state properties to update
- * @returns {Promise} Promise resolving when state is saved
- */
-export function saveUserState(stateUpdate = {}) {
-    return new Promise((resolve, reject) => {
-        try {
-            // Update current state with new values
-            userState = {
-                ...userState,
-                ...stateUpdate,
-                lastUpdated: new Date().toISOString()
-            };
-            
-            // Save to localStorage
-            localStorage.setItem(USER_STATE_KEY, JSON.stringify(userState));
-            
-            // Update UI elements if needed
-            updateUIFromState(userState);
-            
-            resolve(userState);
-        } catch (error) {
-            console.error("Error saving user state:", error);
-            reject(error);
-        }
-    });
-}
-
-/**
- * Load user state from localStorage
- * @returns {Promise} Promise resolving with the loaded state
- */
-export function loadUserState() {
-    return new Promise((resolve, reject) => {
-        try {
-            initUserState();
-            resolve(userState);
-        } catch (error) {
-            console.error("Error loading user state:", error);
-            reject(error);
-        }
-    });
-}
-
-/**
- * Get current user state
- * @returns {Object} Current user state
- */
-export function getUserState() {
-    return userState;
 }
 
 /**
  * Update UI elements based on user state
- * @param {Object} state - The user state
  */
-function updateUIFromState(state) {
-    // Update username
+function updateUIWithUserState() {
+    // Update username display
     const usernameElement = document.getElementById('username');
-    if (usernameElement && state.username) {
-        usernameElement.textContent = state.username;
+    if (usernameElement) {
+        usernameElement.textContent = userState.username;
     }
     
-    // Update coins
+    // Update coins display
     const coinsElement = document.getElementById('coins');
-    if (coinsElement && state.coins !== undefined) {
-        coinsElement.textContent = state.coins;
+    if (coinsElement) {
+        coinsElement.textContent = userState.coins.toString();
     }
 }
 
 /**
- * Check and update daily login streak
+ * Save current user state to localStorage
  */
-function checkLoginStreak() {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    
-    if (userState.lastLoginDate) {
-        const lastLogin = new Date(userState.lastLoginDate);
-        const currentDate = new Date();
-        
-        // Calculate days between logins
-        const timeDiff = currentDate.getTime() - lastLogin.getTime();
-        const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
-        
-        if (daysDiff === 1) {
-            // Consecutive day login
-            userState.streak += 1;
-            // Award bonus coins for streaks at milestones
-            if (userState.streak % 5 === 0) {
-                const bonus = userState.streak;
-                userState.coins += bonus;
-                // Will be updated in main.js or notifications.js
-                window.dispatchEvent(new CustomEvent('notification', { 
-                    detail: {
-                        message: `${bonus} bonus coins awarded for ${userState.streak} day streak!`,
-                        type: "success"
-                    }
-                }));
-            }
-        } else if (daysDiff > 1) {
-            // Streak broken
-            userState.streak = 1;
-        }
-        // Same day login doesn't change streak
-    } else {
-        // First login ever
-        userState.streak = 1;
+export function saveUserState() {
+    try {
+        userState.lastActive = new Date().toISOString();
+        localStorage.setItem('aiLearningUserState', JSON.stringify(userState));
+        console.log("User state saved successfully");
+        return true;
+    } catch (error) {
+        console.error("Error saving user state:", error);
+        return false;
     }
-    
-    userState.lastLoginDate = today;
-    saveUserState();
 }
 
 /**
- * Reset user progress
- * @param {boolean} keepUsername - Whether to keep the username
- * @returns {Promise} Promise resolving when state is reset
+ * Get the current user state
+ * @returns {Object} Current user state
  */
-export function resetUserProgress(keepUsername = true) {
-    const username = keepUsername ? userState.username : 'Guest';
-    
-    userState = {
-        ...defaultUserState,
-        username: username,
-        lastLoginDate: new Date().toISOString().split('T')[0],
-        lastUpdated: new Date().toISOString()
-    };
-    
-    return saveUserState();
+export function getUserState() {
+    return { ...userState };
 }
 
 /**
- * Update user coins
+ * Update user's coin balance
  * @param {number} amount - Amount to add (positive) or subtract (negative)
- * @param {string} reason - Reason for coin change
- * @returns {Promise} Promise resolving with updated state
+ * @returns {Object} Updated user state
  */
-export function updateCoins(amount, reason = '') {
-    const previousCoins = userState.coins;
-    userState.coins = Math.max(0, userState.coins + amount);
+export function updateCoins(amount) {
+    userState.coins += amount;
+    // Ensure coins don't go negative
+    if (userState.coins < 0) {
+        userState.coins = 0;
+    }
     
-    // Dispatch coin change event for animations
-    window.dispatchEvent(new CustomEvent('coin-change', { 
-        detail: { 
-            previous: previousCoins, 
-            current: userState.coins, 
-            change: amount,
-            reason: reason
-        } 
-    }));
+    // Update UI
+    const coinsElement = document.getElementById('coins');
+    if (coinsElement) {
+        coinsElement.textContent = userState.coins.toString();
+        
+        // Add animation for feedback
+        coinsElement.classList.add('coin-update');
+        setTimeout(() => {
+            coinsElement.classList.remove('coin-update');
+        }, 500);
+    }
     
-    return saveUserState();
+    // Save state
+    saveUserState();
+    return userState;
 }
 
-// Export the module
+/**
+ * Mark a lesson as completed
+ * @param {string} lessonId - ID of the completed lesson
+ * @param {number} score - Score achieved (0-100)
+ * @returns {Object} Updated user state
+ */
+export function completeLesson(lessonId, score = 100) {
+    // Check if already completed to avoid duplicates
+    const existingCompletion = userState.completedLessons.find(lesson => lesson.id === lessonId);
+    
+    if (existingCompletion) {
+        // Update existing completion if score is higher
+        if (score > existingCompletion.score) {
+            existingCompletion.score = score;
+            existingCompletion.completedAt = new Date().toISOString();
+        }
+    } else {
+        // Add new completion
+        userState.completedLessons.push({
+            id: lessonId,
+            score: score,
+            completedAt: new Date().toISOString()
+        });
+        
+        // Award coins for first-time completion
+        updateCoins(50);
+    }
+    
+    saveUserState();
+    return userState;
+}
+
 export default {
     initUserState,
     saveUserState,
-    loadUserState,
     getUserState,
-    resetUserProgress,
-    updateCoins
+    updateCoins,
+    completeLesson
 };

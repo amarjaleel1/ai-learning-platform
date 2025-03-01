@@ -12,12 +12,16 @@ import MobileMenu from './modules/mobile-menu.js';
 import TouchHandler from './modules/touch-handler.js';
 import Print from './modules/print.js';
 import Network from './modules/network.js';
+import * as Helpers from './utils/helpers.js';
+import CONFIG from './utils/config.js';
 
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM loaded, initializing application...');
     try {
         // Show loading indicator
         showLoader();
+        console.log('Loader displayed');
         
         // First apply UI fixes to ensure proper display during loading
         fixZIndexIssues();
@@ -42,6 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         Print.initPrintFunctionality();
         
         // Initialize lessons
+        console.log('Initializing lessons...');
         await initLessons();
         
         // Initialize dashboard
@@ -50,11 +55,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize navigation
         initNavigation();
         
-        // Hide loader after initialization
-        hideLoader();
-        
         // Process URL hash to load correct view
         processUrlHash();
+        
+        // Hide loader after initialization
+        console.log('Initialization complete, hiding loader');
+        hideLoader();
         
         console.log('Application initialized successfully');
     } catch (error) {
@@ -122,6 +128,8 @@ function processUrlHash() {
  * @param {string} id - Optional ID parameter (e.g., lesson ID)
  */
 function showView(viewName, id) {
+    console.log(`Showing view: ${viewName}${id ? ' with ID: ' + id : ''}`);
+    
     // Hide all views
     document.querySelectorAll('[data-view]').forEach(view => {
         view.classList.add('hidden');
@@ -134,7 +142,11 @@ function showView(viewName, id) {
         
         // If this is the lessons view and we have an ID, load that lesson
         if (viewName === 'lessons' && id) {
-            loadLesson(id);
+            if (typeof loadLesson === 'function') {
+                loadLesson(id);
+            } else {
+                console.error('loadLesson function not found');
+            }
         }
         
         // Update active nav link
@@ -146,6 +158,8 @@ function showView(viewName, id) {
         if (welcomeView) {
             welcomeView.classList.remove('hidden');
             updateActiveNavLink('welcome');
+        } else {
+            console.error('Welcome view not found either');
         }
     }
 }
@@ -172,7 +186,10 @@ async function initLessons() {
     // This function will be replaced with an ES module import
     // For now, we're just calling the existing global function
     if (typeof window.initLessons === 'function') {
+        console.log('Calling window.initLessons()');
         return window.initLessons();
+    } else {
+        console.warn('window.initLessons function not found, skipping lesson initialization');
     }
     return Promise.resolve();
 }
@@ -184,6 +201,9 @@ function showLoader() {
     const loader = document.getElementById('app-loader');
     if (loader) {
         loader.style.display = 'flex';
+        console.log('Loader element found and displayed');
+    } else {
+        console.error('Loader element not found');
     }
 }
 
@@ -194,6 +214,9 @@ function hideLoader() {
     const loader = document.getElementById('app-loader');
     if (loader) {
         loader.style.display = 'none';
+        console.log('Loader hidden');
+    } else {
+        console.error('Loader element not found when trying to hide');
     }
 }
 
@@ -225,6 +248,20 @@ function showErrorDisplay(error) {
     // Log detailed error for debugging
     console.error('Application error details:', error);
 }
+
+// Fix for welcome page
+document.addEventListener('DOMContentLoaded', () => {
+    // Make sure welcome page is visible initially if no hash
+    if (!window.location.hash) {
+        const welcomeView = document.querySelector('[data-view="welcome"]');
+        if (welcomeView) {
+            document.querySelectorAll('[data-view]').forEach(view => {
+                view.classList.add('hidden');
+            });
+            welcomeView.classList.remove('hidden');
+        }
+    }
+});
 
 // Export global access to state functions
 window.saveUserState = State.saveUserState;
