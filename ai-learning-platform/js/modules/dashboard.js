@@ -582,6 +582,26 @@ function addDashboardStyles() {
                 grid-template-columns: 100px 1fr 50px 50px;
             }
         }
+        
+        @media (max-width: 480px) {
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .category-item {
+                grid-template-columns: 80px 1fr 40px 40px;
+                font-size: 0.8rem;
+            }
+            
+            .dashboard-card {
+                padding: 15px;
+            }
+            
+            .lesson-meta {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
     `;
     
     document.head.appendChild(styleElement);

@@ -40,6 +40,7 @@
         <ul>
             <li><a href="#welcome" data-nav="welcome">Welcome</a></li>
             <li><a href="#lessons" data-nav="lessons">Lessons</a></li>
+            <li><a href="#dashboard" data-nav="dashboard">Dashboard</a></li>
             <li><a href="#about" data-nav="about">About</a></li>
         </ul>
     </nav>
@@ -85,6 +86,38 @@
                 </div>
             </div>
             
+            <!-- The lessons view -->
+            <div id="lessons-view" data-view="lessons" class="hidden">
+                <!-- Will be populated by the lessons module -->
+            </div>
+
+            <!-- The dashboard view -->
+            <div id="dashboard-container" data-view="dashboard" class="hidden">
+                <!-- Will be populated by the dashboard module -->
+            </div>
+            
+            <!-- The about view -->
+            <div id="about-view" data-view="about" class="hidden">
+                <h2>About AI Learning Platform</h2>
+                <div class="about-content">
+                    <p>The AI Learning Platform is an interactive educational tool designed to help you learn about artificial intelligence concepts through hands-on coding exercises and visualizations.</p>
+                    
+                    <h3>Our Mission</h3>
+                    <p>Our mission is to make AI education accessible, interactive, and engaging for everyone, regardless of their background or prior experience.</p>
+                    
+                    <h3>Features</h3>
+                    <ul>
+                        <li><strong>Interactive Lessons</strong>: Learn by doing with our hands-on coding exercises</li>
+                        <li><strong>Visualizations</strong>: See your algorithms in action with dynamic visualizations</li>
+                        <li><strong>Progress Tracking</strong>: Track your progress and earn rewards as you learn</li>
+                        <li><strong>Personalized Learning Path</strong>: Follow a customized path based on your interests and progress</li>
+                    </ul>
+                    
+                    <h3>Contact</h3>
+                    <p>If you have any questions or feedback, please contact us at <a href="mailto:contact@ailearningplatform.com">contact@ailearningplatform.com</a>.</p>
+                </div>
+            </div>
+            
             <div id="code-container" class="hidden" aria-label="Code editor">
                 <h3><i class="fas fa-code" aria-hidden="true"></i> Write your code:</h3>
                 <textarea id="code-editor" spellcheck="false" aria-label="Code editor" tabindex="0"></textarea>
@@ -106,9 +139,9 @@
         <div class="footer-content">
             <p>&copy; 2023 AI Learning Platform</p>
             <div class="footer-links">
-                <a href="#" aria-label="About this platform">About</a>
-                <a href="#" aria-label="Privacy policy">Privacy</a>
-                <a href="#" aria-label="Terms of service">Terms</a>
+                <a href="#about" data-nav="about" aria-label="About this platform">About</a>
+                <a href="#privacy" aria-label="Privacy policy">Privacy</a>
+                <a href="#terms" aria-label="Terms of service">Terms</a>
                 <a href="#" id="show-analytics-settings" aria-label="Data settings">Data Settings</a>
             </div>
         </div>
@@ -133,7 +166,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-javascript.min.js"></script>
     
-    <!-- Application Scripts - Using new module loader -->
-    <script src="js/loader.js"></script>
+    <!-- Legacy scripts for backward compatibility -->
+    <script src="js/main.js"></script>
+    <script src="lessons/additional_lessons.js"></script>
+    <script src="js/lessons.js"></script>
+    <script src="js/visualization.js"></script>
+    <script src="js/code-editor.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/welcome.js"></script>
+    <script src="js/analytics.js"></script>
+    
+    <!-- ES6 module system -->
+    <script type="module" src="js/module.js"></script>
 </body>
 </html>
