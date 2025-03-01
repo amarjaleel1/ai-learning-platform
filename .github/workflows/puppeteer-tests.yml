@@ -19,23 +19,35 @@ jobs:
         fetch-depth: 1
         submodules: false
     
+    - name: Check for lock file
+      id: check-lock
+      run: |
+        if [ -f "package-lock.json" ] || [ -f "npm-shrinkwrap.json" ] || [ -f "yarn.lock" ]; then
+          echo "lockfile=true" >> $GITHUB_OUTPUT
+          echo "Lock file found"
+        else
+          echo "lockfile=false" >> $GITHUB_OUTPUT
+          echo "No lock file found"
+        fi
+    
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        cache: 'npm'
+        cache: ${{ steps.check-lock.outputs.lockfile == 'true' && 'npm' || 'false' }}
+    
+    - name: Generate lock file if needed
+      run: |
+        if [ ! -f package-lock.json ] && [ -f package.json ]; then
+          echo "No package-lock.json found, generating one..."
+          npm install --package-lock-only
+          echo "Lock file generated"
+        fi
     
     - name: Install dependencies
       run: |
         echo "Installing dependencies..."
         npm ci || npm install
-      
-    - name: Generate lock file if needed
-      run: |
-        if [ ! -f package-lock.json ]; then
-          echo "No package-lock.json found, generating one..."
-          npm install --package-lock-only
-        fi
     
     - name: Start server in background
       run: |
