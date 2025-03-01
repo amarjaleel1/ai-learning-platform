@@ -34,7 +34,18 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        cache: ${{ steps.check-lock.outputs.lockfile == 'true' && 'npm' || 'false' }}
+        # Disable cache completely to avoid the error
+        cache: false
+    
+    # Separate cache step that only runs if we have a lock file
+    - name: Cache npm dependencies
+      if: steps.check-lock.outputs.lockfile == 'true'
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json', '**/yarn.lock', '**/npm-shrinkwrap.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
     
     - name: Generate lock file if needed
       run: |
@@ -47,7 +58,7 @@ jobs:
     - name: Install dependencies
       run: |
         echo "Installing dependencies..."
-        npm ci || npm install
+        npm install
     
     - name: Start server in background
       run: |
