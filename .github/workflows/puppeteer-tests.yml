@@ -9,9 +9,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        submodules: false
     
     - name: Set up Node.js
       uses: actions/setup-node@v3
@@ -20,7 +26,9 @@ jobs:
         cache: 'npm'
     
     - name: Install dependencies
-      run: npm ci
+      run: |
+        echo "Installing dependencies..."
+        npm ci || npm install
       
     - name: Generate lock file if needed
       run: |
@@ -31,17 +39,24 @@ jobs:
     
     - name: Start server in background
       run: |
+        echo "Starting server..."
         npm start &
-        sleep 5 # Give the server time to start
+        echo "Waiting for server to be ready..."
+        sleep 10 # Give the server more time to start
     
     - name: Run browser tests
-      run: npm run test:browser
+      run: |
+        echo "Running browser tests..."
+        npm run test:browser
     
     - name: Run accessibility tests
-      run: npm run test:accessibility
+      run: |
+        echo "Running accessibility tests..."
+        npm run test:accessibility
       
     - name: Check if server is running
       run: |
+        echo "Checking server status..."
         curl -s http://localhost:3000 > /dev/null
         if [ $? -ne 0 ]; then
           echo "Server is not running"
@@ -49,3 +64,12 @@ jobs:
         else
           echo "Server is running properly"
         fi
+
+    - name: Upload logs on failure
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: server-logs
+        path: |
+          logs/
+          npm-debug.log*
