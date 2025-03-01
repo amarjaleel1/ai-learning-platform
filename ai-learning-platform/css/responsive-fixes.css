@@ -1,0 +1,110 @@
+/* Responsive fixes for AI Learning Platform */
+
+/* Fix iOS input zoom issue */
+@media screen and (max-width: 767px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="password"],
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Fix modal height on small screens */
+@media screen and (max-height: 600px) {
+  .modal-content {
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+}
+
+/* Fix content overflow issues */
+#lesson-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Fix sidebar display on tablets */
+@media screen and (max-width: 1024px) and (min-width: 901px) {
+  .sidebar {
+    width: 220px;
+  }
+  
+  .lesson-item {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Fix layout for extra small devices */
+@media screen and (max-width: 400px) {
+  .logo h1 {
+    font-size: 1.2rem;
+  }
+  
+  .main-nav a {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .user-info {
+    gap: 10px;
+  }
+  
+  #username {
+    max-width: 80px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  
+  #coin-display {
+    padding: 3px 8px;
+  }
+}
+
+/* Fix navigation on wide screens */
+@media screen and (min-width: 1400px) {
+  .main-nav ul {
+    justify-content: center;
+  }
+}
+
+/* Fix sidebar collapse animation */
+.sidebar {
+  transition: width 0.3s ease, max-height 0.3s ease;
+}
+
+/* Fix code editor display on small screens */
+@media screen and (max-width: 600px) {
+  #code-editor {
+    font-size: 13px;
+  }
+}
+
+/* Fix button spacing on mobile */
+@media screen and (max-width: 480px) {
+  .button-group {
+    flex-direction: column-reverse;
+  }
+  
+  .button-group button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Fix dashboard cards on small screens */
+@media screen and (max-width: 600px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+}
+
+/* Fix modal display on landscape */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  .modal-content {
+    max-height: 98vh; 
+    max-width: 

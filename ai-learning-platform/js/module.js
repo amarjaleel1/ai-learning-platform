@@ -3,10 +3,11 @@
  * Integrates all ES6 modules and initializes the application
  */
 
-// Import core modules
 import * as State from './modules/state.js';
 import Dashboard from './modules/dashboard.js';
 import Notifications from './modules/notifications.js';
+import Theme from './modules/theme.js';
+import { applyUIFixes, fixZIndexIssues } from './modules/ui-fixes.js';
 
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
@@ -14,8 +15,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Show loading indicator
         showLoader();
         
+        // First apply UI fixes to ensure proper display during loading
+        fixZIndexIssues();
+        applyUIFixes();
+        
         // Initialize state first
         await State.initUserState();
+        
+        // Initialize theme
+        Theme.initTheme();
         
         // Initialize lessons
         await initLessons();
@@ -40,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             'error'
         );
         hideLoader();
+        showErrorDisplay(error);
     }
 });
 
@@ -171,6 +180,35 @@ function hideLoader() {
     if (loader) {
         loader.style.display = 'none';
     }
+}
+
+/**
+ * Show application error display
+ * @param {Error} error - The error that occurred
+ */
+function showErrorDisplay(error) {
+    const errorContainer = document.getElementById('app-error');
+    if (errorContainer) {
+        const errorMessage = document.getElementById('error-message');
+        if (errorMessage) {
+            errorMessage.textContent = 'An error occurred while loading the application. Please try refreshing the page.';
+        }
+        
+        const retryButton = document.getElementById('error-retry');
+        if (retryButton) {
+            retryButton.addEventListener('click', () => {
+                window.location.reload();
+            });
+        }
+        
+        errorContainer.style.display = 'flex';
+    } else {
+        // Fallback if error container doesn't exist
+        alert('An error occurred while loading the application. Please try refreshing the page.');
+    }
+    
+    // Log detailed error for debugging
+    console.error('Application error details:', error);
 }
 
 // Export global access to state functions
