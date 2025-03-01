@@ -144,4 +144,156 @@ function updateLessonsWithTemplates() {
 document.addEventListener('DOMContentLoaded', function() {
     initializeCodeEditor();
     updateLessonsWithTemplates();
+    
+    // Setup event handlers only once
+    setupEventHandlers();
 });
+
+/**
+ * Execute the code from the editor with proper error handling
+ */
+function executeCode() {
+    const codeEditor = document.getElementById('code-editor');
+    const code = codeEditor.value;
+    
+    if (!code.trim()) {
+        showNotification("Please write some code first", "warning");
+        return;
+    }
+    
+    try {
+        // Validate code for security issues
+        if (!validateCode(code)) {
+            return;
+        }
+        
+        // Create a safe execution environment
+        const executeInSandbox = createSandbox();
+        
+        // Execute code and get results
+        const result = executeInSandbox(code);
+        
+        // Update visualization if needed
+        if (typeof updateVisualizationWithResult === 'function') {
+            updateVisualizationWithResult(result);
+        } else {
+            console.warn("updateVisualizationWithResult function not found");
+        }
+        
+        showNotification("Code executed successfully!", "success");
+    } catch (error) {
+        console.error("Code execution error:", error);
+        showNotification(`Error: ${error.message}`, "error");
+    }
+}
+
+/**
+ * Validate code for potential security issues
+ * @param {string} code - The code to validate
+ * @returns {boolean} Whether the code is safe to execute
+ */
+function validateCode(code) {
+    // Check for potentially dangerous operations
+    const dangerousPatterns = [
+        /eval\s*\(/i,
+        /document\s*\.\s*cookie/i,
+        /localStorage/i,
+        /sessionStorage/i,
+        /fetch\s*\(/i,
+        /XMLHttpRequest/i,
+        /new\s+Worker/i,
+        /window\s*\.\s*open/i
+    ];
+    
+    for (const pattern of dangerousPatterns) {
+        if (pattern.test(code)) {
+            showNotification("Your code contains potentially unsafe operations. Please avoid using browser APIs, eval(), or network requests.", "error");
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+/**
+ * Create a sandbox for safely executing user code
+ * @returns {Function} Function that executes code in the sandbox
+ */
+function createSandbox() {
+    return function(code) {
+        // Create a controlled environment for code execution
+        const sandbox = {};
+        
+        // Add allowed functions and objects to the sandbox
+        sandbox.console = {
+            log: function(...args) {
+                console.log("User code:", ...args);
+                return args[0];
+            }
+        };
+        
+        // Add math functions
+        Object.getOwnPropertyNames(Math).forEach(key => {
+            sandbox[key] = Math[key];
+        });
+        
+        // Create sandbox function with user code
+        const sandboxFunction = new Function(
+            ...Object.keys(sandbox),
+            `"use strict"; 
+            try { 
+                ${code}; 
+                return null; 
+            } catch(e) { 
+                throw new Error("Runtime error: " + e.message); 
+            }`
+        );
+        
+        // Execute the code with sandbox parameters
+        return sandboxFunction(...Object.values(sandbox));
+    };
+}
+
+/**
+ * Set up event handlers for the code editor buttons
+ */
+function setupEventHandlers() {
+    // Remove any existing event listeners first (if any)
+    const runButton = document.getElementById('run-code');
+    const hintButton = document.getElementById('get-hint');
+    
+    if (runButton) {
+        const newRunButton = runButton.cloneNode(true);
+        runButton.parentNode.replaceChild(newRunButton, runButton);
+        newRunButton.addEventListener('click', executeCode);
+    }
+    
+    if (hintButton) {
+        const newHintButton = hintButton.cloneNode(true);
+        hintButton.parentNode.replaceChild(newHintButton, hintButton);
+        newHintButton.addEventListener('click', showHint);
+    }
+}
+
+/**
+ * Show a hint for the current lesson
+ */
+function showHint() {
+    try {
+        // Get the current lesson to find appropriate hint
+        if (typeof getCurrentLesson === 'function') {
+            const currentLesson = getCurrentLesson();
+            if (currentLesson && currentLesson.hint) {
+                showNotification(currentLesson.hint, "info", 8000);
+            } else {
+                showNotification("No hints available for this exercise", "info");
+            }
+        } else {
+            console.error("getCurrentLesson function not defined");
+            showNotification("Hint system not available", "error");
+        }
+    } catch (error) {
+        console.error("Error showing hint:", error);
+        showNotification("Couldn't load hint", "error");
+    }
+}

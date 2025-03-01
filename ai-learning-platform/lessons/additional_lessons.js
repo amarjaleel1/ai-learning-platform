@@ -140,15 +140,97 @@ function thresholdImage(imageData, threshold) {
                    code.includes('threshold') && 
                    (code.includes('for') || code.includes('map') || code.includes('forEach'));
         }
+    },
+    {
+        id: 'neural-networks-intro',
+        title: 'Introduction to Neural Networks',
+        category: 'Deep Learning',
+        difficulty: 'Intermediate',
+        prerequisites: ['machine-learning-basics'],
+        content: `
+            <h3>What are Neural Networks?</h3>
+            <p>Neural networks are computing systems inspired by the biological neural networks that constitute animal brains. 
+            They are the foundation of many modern AI systems, particularly in the field of deep learning.</p>
+            
+            <h3>Key Components:</h3>
+            <ul>
+                <li><strong>Neurons:</strong> Basic computational units</li>
+                <li><strong>Weights:</strong> Parameters that are adjusted during learning</li>
+                <li><strong>Activation Functions:</strong> Determine the output of neurons</li>
+                <li><strong>Layers:</strong> Organized collections of neurons</li>
+            </ul>
+            
+            <p>In this lesson, we'll explore the fundamentals of neural networks and build a simple one from scratch.</p>
+        `,
+        hasCodeExercise: true,
+        boilerplateCode: `// Simple neural network with one hidden layer
+function sigmoid(x) {
+  return 1 / (1 + Math.exp(-x));
+}
+
+// Complete the feedforward function
+function feedforward(inputs, weights) {
+  // Your code here:
+  
+}
+
+// Test your network
+const inputs = [0.5, 0.3];
+const weights = {
+  inputToHidden: [[0.2, 0.4], [0.1, 0.5], [0.3, 0.2]],
+  hiddenToOutput: [[0.6, 0.3, 0.4]]
+};
+
+const output = feedforward(inputs, weights);
+console.log("Output:", output);`,
+        hasVisualization: true,
+        visualizationType: 'network'
+    },
+    {
+        id: 'reinforcement-learning',
+        title: 'Reinforcement Learning Basics',
+        category: 'Advanced AI',
+        difficulty: 'Advanced',
+        prerequisites: ['neural-networks-intro'],
+        content: `
+            <h3>Understanding Reinforcement Learning</h3>
+            <p>Reinforcement Learning (RL) is a type of machine learning where an agent learns to make decisions by 
+            taking actions in an environment to maximize some notion of cumulative reward.</p>
+            
+            <h3>Key Concepts:</h3>
+            <ul>
+                <li><strong>Agent:</strong> The learner or decision-maker</li>
+                <li><strong>Environment:</strong> What the agent interacts with</li>
+                <li><strong>State:</strong> Current situation of the agent</li>
+                <li><strong>Action:</strong> What the agent can do</li>
+                <li><strong>Reward:</strong> Feedback from the environment</li>
+            </ul>
+            
+            <p>In this lesson, we'll explore the Q-learning algorithm, a foundational technique in reinforcement learning.</p>
+        `,
+        hasCodeExercise: false,
+        hasVisualization: true,
+        visualizationType: 'graph'
     }
 ];
 
-// Function to add additional lessons to the main lessons array
-function addAdditionalLessons(mainLessons) {
-    additionalLessons.forEach(lesson => {
-        mainLessons.push(lesson);
-    });
-    return mainLessons;
+/**
+ * Adds additional lessons to the platform
+ */
+function addAdditionalLessons() {
+    if (typeof lessons !== 'undefined') {
+        // Add additional lessons to the main lessons array
+        lessons = [...lessons, ...additionalLessons];
+        
+        // Re-populate lesson list if it exists
+        if (typeof populateLessonList === 'function') {
+            populateLessonList();
+        }
+        
+        console.log('Additional lessons added:', additionalLessons.length);
+    } else {
+        console.error('Main lessons array not found. Additional lessons not added.');
+    }
 }
 
 // Export for use in lessons.js

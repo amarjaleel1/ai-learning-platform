@@ -1,9 +1,92 @@
 // User profile management
 
+// Default user state
+let userState = {
+    username: 'Guest',
+    coins: 0,
+    completedLessons: [],
+    currentLesson: null,
+    achievements: [],
+    lastLoginDate: null,
+    streak: 0,
+    settings: {
+        theme: 'light',
+        codeEditorFontSize: 14,
+        notifications: true
+    }
+};
+
 // Initialize user profile when document is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    initializeUserState();
     setupProfileButton();
 });
+
+/**
+ * Initialize user state from localStorage or create a new one
+ */
+function initializeUserState() {
+    try {
+        const savedState = localStorage.getItem(USER_STATE_KEY);
+        
+        if (savedState) {
+            // Merge saved state with default state to handle any new properties
+            const parsedState = JSON.parse(savedState);
+            userState = {
+                ...userState,  // Default values
+                ...parsedState // Saved values override defaults
+            };
+        }
+        
+        // Check for daily login streak
+        checkLoginStreak();
+        
+        // Update UI with current state
+        updateUIFromState(userState);
+        
+        console.log("User state initialized:", userState);
+    } catch (error) {
+        console.error("Error initializing user state:", error);
+        // Continue with default state if there was an error
+    }
+}
+
+/**
+ * Check and update daily login streak
+ */
+function checkLoginStreak() {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    if (userState.lastLoginDate) {
+        const lastLogin = new Date(userState.lastLoginDate);
+        const currentDate = new Date();
+        
+        // Calculate days between logins
+        const timeDiff = currentDate.getTime() - lastLogin.getTime();
+        const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+        
+        if (daysDiff === 1) {
+            // Consecutive day login
+            userState.streak += 1;
+            // Award bonus coins for streaks at milestones
+            if (userState.streak % 5 === 0) {
+                const bonus = userState.streak;
+                userState.coins += bonus;
+                showNotification(`${bonus} bonus coins awarded for ${userState.streak} day streak!`, "success");
+            }
+        } else if (daysDiff > 1) {
+            // Streak broken
+            userState.streak = 1;
+        }
+        // Same day login doesn't change streak
+    } else {
+        // First login ever
+        userState.streak = 1;
+    }
+    
+    userState.lastLoginDate = today;
+    saveUserState();
+}
 
 // Set up profile button in header
 function setupProfileButton() {
@@ -291,4 +374,76 @@ function confirmResetProgress(parentModal) {
         
         showNotification('Your progress has been reset', 'info');
     });
+}
+
+/**
+ * User state management functions
+ */
+const USER_STATE_KEY = 'aiLearningPlatform_userState';
+
+/**
+ * Save current user state to localStorage
+ * @param {Object} stateUpdate - The state properties to update
+ * @returns {Promise} Promise resolving when state is saved
+ */
+function saveUserState(stateUpdate = {}) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Get existing state or create a new one
+            let currentState = JSON.parse(localStorage.getItem(USER_STATE_KEY) || '{}');
+            
+            // Update with new values
+            const updatedState = {
+                ...currentState,
+                ...stateUpdate,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            // Save to localStorage
+            localStorage.setItem(USER_STATE_KEY, JSON.stringify(updatedState));
+            
+            // Update UI elements if needed
+            updateUIFromState(updatedState);
+            
+            resolve(updatedState);
+        } catch (error) {
+            console.error("Error saving user state:", error);
+            reject(error);
+        }
+    });
+}
+
+/**
+ * Load user state from localStorage
+ * @returns {Promise} Promise resolving with the loaded state
+ */
+function loadUserState() {
+    return new Promise((resolve, reject) => {
+        try {
+            const state = JSON.parse(localStorage.getItem(USER_STATE_KEY) || '{}');
+            updateUIFromState(state);
+            resolve(state);
+        } catch (error) {
+            console.error("Error loading user state:", error);
+            reject(error);
+        }
+    });
+}
+
+/**
+ * Update UI elements based on user state
+ * @param {Object} state - The user state
+ */
+function updateUIFromState(state) {
+    // Update username
+    const usernameElement = document.getElementById('username');
+    if (usernameElement && state.username) {
+        usernameElement.textContent = state.username;
+    }
+    
+    // Update coins
+    const coinsElement = document.getElementById('coins');
+    if (coinsElement && state.coins !== undefined) {
+        coinsElement.textContent = state.coins;
+    }
 }

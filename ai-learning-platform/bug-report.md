@@ -1,42 +1,30 @@
 # Bug Report: AI Learning Platform
 
-## HTML File Issues (`index.html`)
+## Newly Discovered Issues
 
-1. **Missing script import**:
-   - The `additional_lessons.js` file exists but is not imported in the HTML file. This means those additional lessons won't be loaded.
-   - **Fix**: Add `<script src="lessons/additional_lessons.js"></script>` before `lessons.js`
+1. **Duplicate visualization code**:
+   - In `visualization.js`, the `prepareVisualization` function is defined twice - once near the start and once at the end
+   - **Fix**: Remove the duplicate function definition at the end of the file
 
-2. **Icon class error**:
-   - Line 83: `<i class="fas fa-chart-network"></i>` uses an invalid Font Awesome icon class.
-   - **Fix**: Change to a valid icon like `<i class="fas fa-chart-bar"></i>` or `<i class="fas fa-project-diagram"></i>`
+2. **Missing getCurrentLesson function**:
+   - In `code-editor.js`, there's a call to `getCurrentLesson()` in the hint button handler, but this function isn't defined
+   - **Fix**: Implement the function in `lessons.js` to return the current lesson object
 
-3. **Missing functions**:
-   - `prepareVisualization()` is called in `lessons.js` but there's no indication it's defined in any of the imported scripts.
-   - **Fix**: Ensure this function is defined in `visualization.js`
+3. **Missing updateVisualizationWithResult function**:
+   - In `code-editor.js`, line 209 calls `updateVisualizationWithResult(result)` but this function isn't defined
+   - **Fix**: Implement this function in `visualization.js`
 
-4. **Inconsistent lesson structure**:
-   - The code editor is shown for all lessons but some lessons might not require coding.
-   - **Fix**: Add conditional logic to show/hide the code container based on lesson type.
+4. **Inconsistent user state initialization**:
+   - The `userState` object is referenced in multiple files but there's no clear initialization
+   - **Fix**: Create proper initialization code in `profile.js` with default values
 
-## JavaScript Issues
+5. **Event handler registered multiple times**:
+   - The "run-code" button has event listeners attached in both `code-editor.js` and potentially elsewhere
+   - **Fix**: Ensure event handlers are registered only once
 
-1. **Integration of additional lessons**:
-   - `addAdditionalLessons()` from `additional_lessons.js` is never called in `lessons.js`.
-   - **Fix**: Import and call this function in `lessons.js`
+## Remaining Issues from Previous Report
 
-2. **User state management**:
-   - `saveUserState()` is called but not defined in the visible code.
-   - **Fix**: Ensure this function is defined, likely in `main.js` or `profile.js`
-
-3. **Potential race condition**:
-   - Lessons are initialized before user state might be fully loaded.
-   - **Fix**: Ensure user state is loaded before initializing lessons.
-
-4. **Missing error handling**:
-   - No error handling for code execution or validation.
-   - **Fix**: Add try/catch blocks around code execution and validation logic.
-
-## General Recommendations
+### General Recommendations
 
 1. **Accessibility improvements**:
    - Add ARIA attributes for better screen reader support.
@@ -49,10 +37,6 @@
    - Consider modularizing the code further for better maintainability.
    - Use ES6 modules instead of multiple script tags.
 
-4. **Security considerations**:
-   - Add input validation for user-submitted code.
-   - Consider using a sandboxed environment for code execution.
-
-5. **Performance optimization**:
+4. **Performance optimization**:
    - Lazy load resources that aren't needed immediately.
    - Consider implementing code splitting for faster initial load times.

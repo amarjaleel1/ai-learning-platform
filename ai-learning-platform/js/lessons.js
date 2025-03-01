@@ -153,3 +153,98 @@ function loadLesson(lessonId) {
 function updateLessonList() {
     initializeLessons();
 }
+
+/**
+ * Initialize lessons and setup lesson navigation
+ */
+function initLessons() {
+    try {
+        // Ensure user state is loaded before initializing lessons
+        if (typeof loadUserState === 'function') {
+            loadUserState().then(() => {
+                populateLessonList();
+                setupLessonNavigation();
+                
+                // Add additional lessons if available
+                if (typeof addAdditionalLessons === 'function') {
+                    addAdditionalLessons();
+                }
+            }).catch(error => {
+                console.error("Error loading user state:", error);
+                // Continue with basic initialization if user state fails
+                populateLessonList();
+                setupLessonNavigation();
+            });
+        } else {
+            // If no user state management is available
+            populateLessonList();
+            setupLessonNavigation();
+            
+            // Add additional lessons if available
+            if (typeof addAdditionalLessons === 'function') {
+                addAdditionalLessons();
+            }
+        }
+    } catch (error) {
+        console.error("Error initializing lessons:", error);
+        showNotification("Error loading lessons. Please refresh the page.", "error");
+    }
+}
+
+/**
+ * Display the selected lesson content
+ * @param {Object} lesson - The lesson to display
+ */
+function displayLesson(lesson) {
+    const lessonTitle = document.getElementById('lesson-title');
+    const lessonContent = document.getElementById('lesson-content');
+    const codeContainer = document.getElementById('code-container');
+    
+    // Set lesson title and content
+    lessonTitle.textContent = lesson.title;
+    lessonContent.innerHTML = lesson.content;
+    
+    // Handle code editor visibility based on lesson requirements
+    if (lesson.hasCodeExercise) {
+        codeContainer.classList.remove('hidden');
+        
+        // Set up code editor with lesson-specific boilerplate code if available
+        const codeEditor = document.getElementById('code-editor');
+        codeEditor.value = lesson.boilerplateCode || '';
+    } else {
+        codeContainer.classList.add('hidden');
+    }
+    
+    // Prepare visualization if needed
+    if (typeof prepareVisualization === 'function') {
+        prepareVisualization(lesson);
+    }
+    
+    // Save user progress if available
+    if (typeof saveUserState === 'function') {
+        saveUserState({
+            currentLesson: lesson.id,
+            lastAccessed: new Date().toISOString()
+        });
+    }
+    
+    // Highlight syntax in any code blocks
+    Prism.highlightAll();
+}
+
+/**
+ * Get the current lesson object
+ * @returns {Object|null} The current lesson object or null if not found
+ */
+function getCurrentLesson() {
+    // Check if user state exists and has current lesson
+    if (typeof userState === 'undefined' || !userState.currentLesson) {
+        return null;
+    }
+    
+    // Find the lesson by ID from all available lessons
+    const allLessons = Array.isArray(lessons) ? lessons : [];
+    const currentLesson = allLessons.find(lesson => lesson.id === userState.currentLesson);
+    
+    return currentLesson || null;
+}

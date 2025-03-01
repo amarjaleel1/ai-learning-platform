@@ -10,29 +10,41 @@ let visualizationState = {
     step: 0
 };
 
-// Prepare visualization based on lesson
-function prepareVisualization(lessonId) {
-    // Clear previous visualization
-    clearCanvas();
-    cancelAnimationFrame(visualizationState.animation);
+/**
+ * Prepares the visualization area for the current lesson
+ * @param {Object} lessonData - The current lesson data
+ */
+function prepareVisualization(lessonData) {
+    const visualizationContainer = document.getElementById('visualization-container');
+    const visualizationCanvas = document.getElementById('visualization-canvas');
+    const ctx = visualizationCanvas.getContext('2d');
     
-    // Set up new visualization based on lesson
-    switch(lessonId) {
-        case 'intro':
-            setupIntroVisualization();
-            break;
-        case 'decision-trees':
-            setupDecisionTreeVisualization();
-            break;
-        case 'neural-networks':
-            setupNeuralNetworkVisualization();
-            break;
-        case 'reinforcement':
-            setupReinforcementVisualization();
-            break;
-        default:
-            hideVisualization();
-            break;
+    // Clear previous visualizations
+    ctx.clearRect(0, 0, visualizationCanvas.width, visualizationCanvas.height);
+    
+    // Show visualization container if this lesson has visualization
+    if (lessonData.hasVisualization) {
+        visualizationContainer.classList.remove('hidden');
+        
+        // Setup visualization based on lesson type
+        if (lessonData.visualizationType) {
+            switch (lessonData.visualizationType) {
+                case 'graph':
+                    setupGraphVisualization(lessonData, ctx);
+                    break;
+                case 'chart':
+                    setupChartVisualization(lessonData, ctx);
+                    break;
+                case 'network':
+                    setupNetworkVisualization(lessonData, ctx);
+                    break;
+                default:
+                    // Default visualization setup
+                    setupDefaultVisualization(ctx);
+            }
+        }
+    } else {
+        visualizationContainer.classList.add('hidden');
     }
 }
 
@@ -766,4 +778,81 @@ function runQLearningSimulation(updateQFunc) {
             runQLearningSimulation(updateQFunc);
         }, 200);
     }
+}
+
+/**
+ * Update the visualization with results from code execution
+ * @param {Object} result - Results from code execution
+ */
+function updateVisualizationWithResult(result) {
+    if (!result) return;
+    
+    try {
+        const currentLesson = getCurrentLesson();
+        if (!currentLesson) return;
+        
+        // Pass results to appropriate visualization handler
+        if (currentLesson.visualizationType) {
+            switch (currentLesson.visualizationType) {
+                case 'graph':
+                    updateGraphVisualization(result, currentLesson);
+                    break;
+                case 'chart':
+                    updateChartVisualization(result, currentLesson);
+                    break;
+                case 'network':
+                    updateNetworkVisualization(result, currentLesson);
+                    break;
+                default:
+                    // Default update
+                    clearCanvas();
+                    ctx.font = '20px Roboto';
+                    ctx.fillStyle = '#333';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Result: ' + JSON.stringify(result), 400, 250);
+            }
+        }
+    } catch (error) {
+        console.error("Error updating visualization:", error);
+    }
+}
+
+// Update specific visualizations based on type
+function updateGraphVisualization(result, lesson) {
+    // Implementation for updating graph visualization
+    console.log("Updating graph visualization with:", result);
+}
+
+function updateChartVisualization(result, lesson) {
+    // Implementation for updating chart visualization
+    console.log("Updating chart visualization with:", result);
+}
+
+function updateNetworkVisualization(result, lesson) {
+    // Implementation for updating network visualization
+    console.log("Updating network visualization with:", result);
+}
+
+// Helper visualization setup functions
+function setupDefaultVisualization(ctx) {
+    // Default visualization setup code
+    ctx.font = '20px Roboto';
+    ctx.fillStyle = '#333';
+    ctx.textAlign = 'center';
+    ctx.fillText('Visualization will appear here when you run your code', 400, 250);
+}
+
+function setupGraphVisualization(lessonData, ctx) {
+    // Graph visualization setup code
+    // This would be implemented based on the specific needs
+}
+
+function setupChartVisualization(lessonData, ctx) {
+    // Chart visualization setup code
+    // This would be implemented based on the specific needs
+}
+
+function setupNetworkVisualization(lessonData, ctx) {
+    // Network visualization setup code
+    // This would be implemented based on the specific needs
 }
