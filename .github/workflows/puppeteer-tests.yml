@@ -20,7 +20,14 @@ jobs:
         cache: 'npm'
     
     - name: Install dependencies
-      run: npm install
+      run: npm ci
+      
+    - name: Generate lock file if needed
+      run: |
+        if [ ! -f package-lock.json ]; then
+          echo "No package-lock.json found, generating one..."
+          npm install --package-lock-only
+        fi
     
     - name: Start server in background
       run: |
