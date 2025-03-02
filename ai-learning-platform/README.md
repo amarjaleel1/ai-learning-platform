@@ -1,6 +1,6 @@
 # AI Learning Platform
 
-![AI Learning Platform Logo](https://via.placeholder.com/150x150/6200ee/ffffff?text=AI+LP)
+
 
 An interactive educational platform for learning artificial intelligence concepts through hands-on coding exercises and visualizations.
 
