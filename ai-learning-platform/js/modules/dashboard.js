@@ -22,6 +22,9 @@ export function initDashboard() {
     window.addEventListener('state-updated', updateDashboardStats);
     
     console.log('Dashboard initialized');
+    
+    // Update the dashboard with user data
+    updateDashboard();
 }
 
 /**

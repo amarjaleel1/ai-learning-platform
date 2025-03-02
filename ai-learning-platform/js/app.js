@@ -59,6 +59,10 @@ async function initializeApplication() {
         // 8. Load last viewed lesson or welcome screen
         await loadInitialContent();
         
+        // Initialize dashboard
+        console.log('Initializing dashboard...');
+        initDashboard();
+        
         return true;
     } catch (error) {
         console.error('Initialization error:', error);

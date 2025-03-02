@@ -1,250 +1,436 @@
-// Define all lessons
-const lessons = [
-    {
-        id: 'intro',
-        title: 'Introduction to AI',
-        content: `
-            <h3>Welcome to AI Learning!</h3>
-            <p>In this course, you'll learn the fundamentals of Artificial Intelligence through interactive lessons and coding exercises.</p>
-            <p>Complete tasks to earn coins and unlock more advanced lessons.</p>
-            <p>To complete this introduction, write a simple function that prints "Hello AI World!"</p>
-        `,
-        task: 'Create a function called greetAI() that returns the string "Hello AI World!"',
-        hint: 'Your function should use the return keyword, not console.log',
-        requiredCoins: 0,
-        checkCode: function(code) {
-            return code.includes('function greetAI') && code.includes('return') && code.includes('Hello AI World');
-        }
-    },
-    {
-        id: 'decision-trees',
-        title: 'Decision Trees',
-        content: `
-            <h3>Decision Trees</h3>
-            <p>Decision trees are simple yet powerful algorithms for classification and regression tasks.</p>
-            <p>They work by repeatedly splitting the data based on feature values.</p>
-            <h4>Task:</h4>
-            <p>Implement a simple decision function that classifies data points based on two features:</p>
-            <ul>
-                <li>If feature1 > 5 and feature2 < 3, classify as "A"</li>
-                <li>If feature1 < 5 and feature2 > 7, classify as "B"</li>
-                <li>Otherwise, classify as "C"</li>
-            </ul>
-        `,
-        task: 'Create a function called classify(feature1, feature2) that implements the decision tree described above',
-        hint: 'Use if-else statements to implement the decision logic',
-        requiredCoins: 5,
-        checkCode: function(code) {
-            return code.includes('function classify') && 
-                   code.includes('feature1') && 
-                   code.includes('feature2') && 
-                   code.includes('return');
-        }
-    },
-    {
-        id: 'neural-networks',
-        title: 'Neural Networks Basics',
-        content: `
-            <h3>Neural Networks</h3>
-            <p>Neural networks are the foundation of modern deep learning.</p>
-            <p>In this lesson, you'll learn about neurons, activation functions, and forward propagation.</p>
-            <h4>Task:</h4>
-            <p>Implement a single neuron that takes two inputs, has two weights and a bias, and uses the sigmoid activation function.</p>
-        `,
-        task: 'Create a function neuron(x1, x2, w1, w2, bias) that implements a single neuron with sigmoid activation',
-        hint: 'Sigmoid function: f(x) = 1/(1 + Math.exp(-x))',
-        requiredCoins: 15,
-        checkCode: function(code) {
-            return code.includes('function neuron') && 
-                   code.includes('Math.exp') && 
-                   (code.includes('1/(1+') || code.includes('1 / (1 +'));
-        }
-    },
-    {
-        id: 'reinforcement',
-        title: 'Reinforcement Learning',
-        content: `
-            <h3>Reinforcement Learning</h3>
-            <p>Reinforcement learning is about training agents to make decisions by rewarding desired behaviors.</p>
-            <p>In this lesson, we'll implement a simple Q-learning algorithm.</p>
-            <h4>Task:</h4>
-            <p>Implement a function that updates a Q-value based on reward and the maximum future Q-value.</p>
-        `,
-        task: 'Create a function updateQ(currentQ, reward, maxFutureQ, learningRate, discountFactor) that implements the Q-learning update rule',
-        hint: 'Q-learning update rule: Q(s,a) = Q(s,a) + learningRate * (reward + discountFactor * maxFutureQ - Q(s,a))',
-        requiredCoins: 30,
-        checkCode: function(code) {
-            return code.includes('function updateQ') && 
-                   code.includes('learningRate') && 
-                   code.includes('discountFactor');
-        }
-    }
-];
+/**
+ * Lessons module for AI Learning Platform
+ * Handles lesson loading, display, and navigation
+ */
 
-// Initialize lessons in the UI
-function initializeLessons() {
-    const lessonList = document.getElementById('lesson-list');
-    lessonList.innerHTML = '';
-    
-    lessons.forEach(lesson => {
-        const isCompleted = userState.completedLessons.includes(lesson.id);
-        const isLocked = lesson.requiredCoins > userState.coins && !isCompleted;
-        
-        const listItem = document.createElement('li');
-        listItem.className = `lesson-item ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''}`;
-        
-        if (isLocked) {
-            listItem.innerHTML = `${lesson.title} <span class="coin-requirement">(${lesson.requiredCoins} coins)</span>`;
-        } else {
-            listItem.textContent = lesson.title;
-            listItem.addEventListener('click', () => loadLesson(lesson.id));
+import { getUserState, saveUserState, updateCoins } from './state.js';
+
+// Current lesson state
+let currentLessonId = null;
+let lessons = [];
+let categories = {};
+
+/**
+ * Initialize lessons module
+ * @returns {Promise} - Promise that resolves when lessons are initialized
+ */
+export function initLessons() {
+    return new Promise((resolve, reject) => {
+        try {
+            // Load lesson data
+            loadLessonData()
+                .then(() => {
+                    // Setup lesson navigation
+                    setupLessonNavigation();
+                    
+                    // Process current URL to load correct lesson
+                    processLessonUrl();
+                    
+                    resolve();
+                })
+                .catch(error => {
+                    console.error("Error loading lesson data:", error);
+                    reject(error);
+                });
+        } catch (error) {
+            console.error("Error initializing lessons:", error);
+            reject(error);
         }
-        
-        lessonList.appendChild(listItem);
     });
-    
-    // If there's a current lesson, load it
-    if (userState.currentLesson) {
-        loadLesson(userState.currentLesson);
-    }
 }
 
-// Load a specific lesson
-function loadLesson(lessonId) {
+/**
+ * Load all lesson data
+ * @returns {Promise} - Promise that resolves when lessons are loaded
+ */
+function loadLessonData() {
+    return new Promise((resolve, reject) => {
+        try {
+            // For now, we'll use the global window.lessons array
+            // Eventually, this should be replaced with a fetch call to load from API
+            if (window.lessons && Array.isArray(window.lessons)) {
+                lessons = window.lessons;
+                
+                // Try to load additional lessons if they exist
+                if (typeof window.addAdditionalLessons === 'function') {
+                    window.addAdditionalLessons();
+                    lessons = window.lessons; // Update with additional lessons
+                }
+                
+                // Process lesson categories
+                processCategoryData();
+                
+                // Populate lesson list
+                populateLessonList();
+                
+                resolve();
+            } else {
+                reject(new Error("No lesson data found"));
+            }
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+/**
+ * Process lesson categories
+ */
+function processCategoryData() {
+    // Create category map
+    categories = {};
+    
+    lessons.forEach(lesson => {
+        const category = lesson.category || 'Uncategorized';
+        
+        if (!categories[category]) {
+            categories[category] = [];
+        }
+        
+        categories[category].push(lesson);
+    });
+}
+
+/**
+ * Setup lesson navigation handlers
+ */
+function setupLessonNavigation() {
+    // Handle clicks on lesson items
+    document.getElementById('lesson-list').addEventListener('click', function(event) {
+        const lessonItem = event.target.closest('.lesson-item');
+        
+        if (lessonItem) {
+            const lessonId = lessonItem.getAttribute('data-lesson-id');
+            
+            if (lessonId && !lessonItem.classList.contains('locked')) {
+                navigateToLesson(lessonId);
+            } else if (lessonItem.classList.contains('locked')) {
+                showLessonLockedMessage(lessonId);
+            }
+        }
+    });
+}
+
+/**
+ * Show message when trying to access a locked lesson
+ * @param {string} lessonId - The ID of the locked lesson
+ */
+function showLessonLockedMessage(lessonId) {
     const lesson = lessons.find(l => l.id === lessonId);
     if (!lesson) return;
     
-    // Check if lesson is locked
-    if (lesson.requiredCoins > userState.coins && !userState.completedLessons.includes(lessonId)) {
-        alert(`This lesson requires ${lesson.requiredCoins} coins to unlock.`);
+    const userCoins = getUserState().coins || 0;
+    const requiredCoins = lesson.requiredCoins || 0;
+    const coinsNeeded = requiredCoins - userCoins;
+    
+    if (typeof window.showNotification === 'function') {
+        window.showNotification(
+            `This lesson requires ${requiredCoins} coins. You need ${coinsNeeded} more coins to unlock it.`,
+            'warning'
+        );
+        
+        // Add shake animation to coins display
+        const coinDisplay = document.getElementById('coin-display');
+        if (coinDisplay) {
+            coinDisplay.classList.add('coin-shortage');
+            setTimeout(() => {
+                coinDisplay.classList.remove('coin-shortage');
+            }, 1000);
+        }
+    } else {
+        alert(`This lesson requires ${requiredCoins} coins. You need ${coinsNeeded} more coins to unlock it.`);
+    }
+}
+
+/**
+ * Navigate to a specific lesson
+ * @param {string} lessonId - The ID of the lesson to navigate to
+ */
+export function navigateToLesson(lessonId) {
+    // Update URL
+    window.location.hash = `lessons/${lessonId}`;
+}
+
+/**
+ * Process URL to load correct lesson
+ */
+function processLessonUrl() {
+    const hash = window.location.hash.substring(1);
+    
+    if (hash.startsWith('lessons/')) {
+        const lessonId = hash.split('/')[1];
+        if (lessonId) {
+            loadLesson(lessonId);
+        }
+    }
+}
+
+/**
+ * Populate the lesson list in the sidebar
+ */
+function populateLessonList() {
+    const lessonListElement = document.getElementById('lesson-list');
+    if (!lessonListElement) return;
+    
+    // Clear existing lessons
+    lessonListElement.innerHTML = '';
+    
+    // Get user state to check completed lessons and available coins
+    const userState = getUserState();
+    const completedLessons = userState.completedLessons || [];
+    const userCoins = userState.coins || 0;
+    
+    // Create lesson list, grouped by category
+    Object.entries(categories).forEach(([category, categoryLessons]) => {
+        // Add category header
+        const categoryHeader = document.createElement('li');
+        categoryHeader.className = 'category-header';
+        categoryHeader.textContent = category;
+        lessonListElement.appendChild(categoryHeader);
+        
+        // Add lessons in this category
+        categoryLessons.forEach((lesson, index) => {
+            const lessonItem = document.createElement('li');
+            lessonItem.className = 'lesson-item';
+            lessonItem.setAttribute('data-lesson-id', lesson.id);
+            
+            // Mark as completed if in user's completed list
+            if (completedLessons.includes(lesson.id)) {
+                lessonItem.classList.add('completed');
+            }
+            
+            // Mark as locked if user doesn't have enough coins
+            if (lesson.requiredCoins && userCoins < lesson.requiredCoins) {
+                lessonItem.classList.add('locked');
+                
+                // Add coin requirement
+                const coinRequirement = document.createElement('span');
+                coinRequirement.className = 'coin-requirement';
+                coinRequirement.innerHTML = `<i class="fas fa-coins"></i> ${lesson.requiredCoins}`;
+                lessonItem.appendChild(coinRequirement);
+            }
+            
+            // Add lesson title
+            lessonItem.appendChild(document.createTextNode(lesson.title));
+            
+            // Add to list
+            lessonListElement.appendChild(lessonItem);
+        });
+    });
+}
+
+/**
+ * Load and display a specific lesson
+ * @param {string} lessonId - The ID of the lesson to load
+ */
+export function loadLesson(lessonId) {
+    const lesson = lessons.find(l => l.id === lessonId);
+    if (!lesson) {
+        console.error(`Lesson ${lessonId} not found`);
         return;
     }
     
-    userState.currentLesson = lessonId;
-    saveUserState();
+    // Check if lesson is locked
+    const userState = getUserState();
+    const userCoins = userState.coins || 0;
     
-    // Update active lesson highlight
-    document.querySelectorAll('.lesson-item').forEach(item => {
-        item.classList.remove('active');
-        if (item.textContent.includes(lesson.title)) {
-            item.classList.add('active');
-        }
-    });
-    
-    // Update lesson content
-    document.getElementById('lesson-title').textContent = lesson.title;
-    document.getElementById('lesson-content').innerHTML = lesson.content;
-    
-    // Show code editor
-    document.getElementById('code-container').classList.remove('hidden');
-    
-    // Reset code editor
-    document.getElementById('code-editor').value = '// Write your code here\n\n';
-    
-    // Show visualization container for relevant lessons
-    const visualizationContainer = document.getElementById('visualization-container');
-    visualizationContainer.classList.remove('hidden');
-    
-    // Prepare visualization based on lesson
-    prepareVisualization(lesson.id);
-}
-
-// Update the lesson list when user state changes
-function updateLessonList() {
-    initializeLessons();
-}
-
-/**
- * Initialize lessons and setup lesson navigation
- */
-function initLessons() {
-    try {
-        // Ensure user state is loaded before initializing lessons
-        if (typeof loadUserState === 'function') {
-            loadUserState().then(() => {
-                populateLessonList();
-                setupLessonNavigation();
-                
-                // Add additional lessons if available
-                if (typeof addAdditionalLessons === 'function') {
-                    addAdditionalLessons();
-                }
-            }).catch(error => {
-                console.error("Error loading user state:", error);
-                // Continue with basic initialization if user state fails
-                populateLessonList();
-                setupLessonNavigation();
-            });
-        } else {
-            // If no user state management is available
-            populateLessonList();
-            setupLessonNavigation();
-            
-            // Add additional lessons if available
-            if (typeof addAdditionalLessons === 'function') {
-                addAdditionalLessons();
-            }
-        }
-    } catch (error) {
-        console.error("Error initializing lessons:", error);
-        showNotification("Error loading lessons. Please refresh the page.", "error");
+    if (lesson.requiredCoins && userCoins < lesson.requiredCoins) {
+        showLessonLockedMessage(lessonId);
+        return;
     }
-}
-
-/**
- * Display the selected lesson content
- * @param {Object} lesson - The lesson to display
- */
-function displayLesson(lesson) {
-    const lessonTitle = document.getElementById('lesson-title');
-    const lessonContent = document.getElementById('lesson-content');
-    const codeContainer = document.getElementById('code-container');
     
-    // Set lesson title and content
-    lessonTitle.textContent = lesson.title;
-    lessonContent.innerHTML = lesson.content;
+    // Save current lesson ID
+    currentLessonId = lessonId;
     
-    // Handle code editor visibility based on lesson requirements
-    if (lesson.hasCodeExercise) {
-        codeContainer.classList.remove('hidden');
-        
-        // Set up code editor with lesson-specific boilerplate code if available
-        const codeEditor = document.getElementById('code-editor');
-        codeEditor.value = lesson.boilerplateCode || '';
-    } else {
-        codeContainer.classList.add('hidden');
-    }
+    // Display the lesson
+    displayLesson(lesson);
+    
+    // Update active lesson in sidebar
+    updateActiveLessonInSidebar(lessonId);
     
     // Prepare visualization if needed
-    if (typeof prepareVisualization === 'function') {
-        prepareVisualization(lesson);
+    if (lesson.hasVisualization && typeof window.prepareVisualization === 'function') {
+        window.prepareVisualization(lesson);
     }
     
-    // Save user progress if available
-    if (typeof saveUserState === 'function') {
-        saveUserState({
-            currentLesson: lesson.id,
-            lastAccessed: new Date().toISOString()
-        });
+    // Get the current lesson object
+    const currentLesson = getCurrentLesson();
+    if (currentLesson) {
+        updateVisualizationWithResult(currentLesson.id, document.getElementById('code-editor').value);
+    }
+}
+
+/**
+ * Display the lesson content
+ * @param {Object} lesson - The lesson object to display
+ */
+function displayLesson(lesson) {
+    const titleElement = document.getElementById('lesson-title');
+    const contentElement = document.getElementById('lesson-content');
+    const codeContainer = document.getElementById('code-container');
+    
+    if (titleElement) titleElement.textContent = lesson.title;
+    
+    if (contentElement) {
+        // Set HTML content - this is trusted content from our lesson files
+        contentElement.innerHTML = lesson.content;
+        
+        // Apply syntax highlighting to code blocks
+        if (window.Prism) {
+            contentElement.querySelectorAll('pre code').forEach((block) => {
+                window.Prism.highlightElement(block);
+            });
+        }
     }
     
-    // Highlight syntax in any code blocks
-    Prism.highlightAll();
+    // Show/hide code container based on whether this lesson has code exercises
+    if (codeContainer) {
+        if (lesson.hasCodeExercise) {
+            codeContainer.classList.remove('hidden');
+            
+            // Set starter code in editor if available
+            const codeEditor = document.getElementById('code-editor');
+            if (codeEditor && lesson.starterCode) {
+                codeEditor.value = lesson.starterCode;
+            }
+        } else {
+            codeContainer.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * Update which lesson is marked active in the sidebar
+ * @param {string} lessonId - The ID of the active lesson
+ */
+function updateActiveLessonInSidebar(lessonId) {
+    // Remove active class from all lessons
+    document.querySelectorAll('#lesson-list .lesson-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Add active class to current lesson
+    const activeLessonItem = document.querySelector(`.lesson-item[data-lesson-id="${lessonId}"]`);
+    if (activeLessonItem) {
+        activeLessonItem.classList.add('active');
+        
+        // Scroll to the active lesson in the sidebar
+        activeLessonItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+/**
+ * Mark the current lesson as completed
+ * @returns {Promise} Promise that resolves when lesson is marked as completed
+ */
+export function markCurrentLessonCompleted() {
+    return new Promise((resolve, reject) => {
+        try {
+            if (!currentLessonId) {
+                reject(new Error("No active lesson"));
+                return;
+            }
+            
+            const userState = getUserState();
+            
+            // Check if lesson is already completed
+            const completedLessons = userState.completedLessons || [];
+            if (completedLessons.includes(currentLessonId)) {
+                resolve(userState); // Already completed, no need to update
+                return;
+            }
+            
+            // Get the lesson to determine reward
+            const lesson = lessons.find(l => l.id === currentLessonId);
+            if (!lesson) {
+                reject(new Error("Lesson not found"));
+                return;
+            }
+            
+            // Award coins for completion
+            const reward = lesson.reward || 10; // Default reward is 10 coins
+            
+            // Update completed lessons list
+            const updatedCompletedLessons = [...completedLessons, currentLessonId];
+            
+            // Add 'just-completed' class to the lesson item for animation
+            const lessonItem = document.querySelector(`.lesson-item[data-lesson-id="${currentLessonId}"]`);
+            if (lessonItem) {
+                lessonItem.classList.add('just-completed', 'completed');
+                setTimeout(() => {
+                    lessonItem.classList.remove('just-completed');
+                }, 2000);
+            }
+            
+            // Update user state with the completed lesson
+            saveUserState({ completedLessons: updatedCompletedLessons })
+                .then(() => {
+                    // Add coins separately for better UI feedback
+                    return updateCoins(reward, `Completed lesson: ${lesson.title}`);
+                })
+                .then(updatedState => {
+                    // Show completion notification
+                    if (typeof window.showNotification === 'function') {
+                        window.showNotification(
+                            `Lesson completed! You earned ${reward} coins.`,
+                            'success'
+                        );
+                    }
+                    
+                    resolve(updatedState);
+                })
+                .catch(error => {
+                    reject(error);
+                });
+        } catch (error) {
+            reject(error);
+        }
+    });
 }
 
 /**
  * Get the current lesson object
- * @returns {Object|null} The current lesson object or null if not found
+ * @returns {Object|null} The current lesson object or null if no lesson is active
  */
-function getCurrentLesson() {
-    // Check if user state exists and has current lesson
-    if (typeof userState === 'undefined' || !userState.currentLesson) {
-        return null;
-    }
-    
-    // Find the lesson by ID from all available lessons
-    const allLessons = Array.isArray(lessons) ? lessons : [];
-    const currentLesson = allLessons.find(lesson => lesson.id === userState.currentLesson);
-    
-    return currentLesson || null;
+export function getCurrentLesson() {
+    if (!currentLessonId) return null;
+    return lessons.find(l => l.id === currentLessonId) || null;
 }
+
+/**
+ * Get all lessons
+ * @returns {Array} Array of all lesson objects
+ */
+export function getAllLessons() {
+    return [...lessons]; // Return a copy to prevent external modification
+}
+
+/**
+ * Get lessons by category
+ * @param {string} category - The category to get lessons for
+ * @returns {Array} Array of lesson objects in the specified category
+ */
+export function getLessonsByCategory(category) {
+    return categories[category] ? [...categories[category]] : [];
+}
+
+/**
+ * Update visualization with result
+ * @param {string} lessonId - The ID of the lesson
+ * @param {string} code - The code to visualize
+ */
+function updateVisualizationWithResult(lessonId, code) {
+    // Placeholder implementation for updating visualization
+    console.log(`Updating visualization for lesson ${lessonId} with code: ${code}`);
+}
+
+// Export the module
+export default {
+    initLessons,
+    loadLesson,
+    navigateToLesson,
+    markCurrentLessonCompleted,
+    getCurrentLesson,
+    getAllLessons,
+    getLessonsByCategory
+};

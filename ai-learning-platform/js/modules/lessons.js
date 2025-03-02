@@ -252,6 +252,12 @@ export function loadLesson(lessonId) {
     if (lesson.hasVisualization && typeof window.prepareVisualization === 'function') {
         window.prepareVisualization(lesson);
     }
+    
+    // Get the current lesson object
+    const currentLesson = getCurrentLesson();
+    if (currentLesson) {
+        updateVisualizationWithResult(currentLesson.id, document.getElementById('code-editor').value);
+    }
 }
 
 /**
