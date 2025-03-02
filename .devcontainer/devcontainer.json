@@ -1,0 +1,7 @@
+{
+  "tasks": {
+    "test": "cd ai-learning-platform && npm install && npm run test",
+    "build": "cd ai-learning-platform && ls",
+    "launch": "cd ai-learning-platform && npm install && npm start"
+  }
+}
