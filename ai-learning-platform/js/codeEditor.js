@@ -1,4 +1,3 @@
-// Initialize the code editor functionality
 function initCodeEditor() {
     const codeEditor = document.getElementById('code-editor');
     const runButton = document.getElementById('run-code');
@@ -8,7 +7,6 @@ function initCodeEditor() {
     
     if (!codeEditor || !outputContainer) return;
     
-    // Set up event listeners for code editor buttons
     if (runButton) {
         runButton.addEventListener('click', runCode);
     }
@@ -21,15 +19,12 @@ function initCodeEditor() {
         resetButton.addEventListener('click', resetCode);
     }
     
-    // Set up keyboard shortcuts
     codeEditor.addEventListener('keydown', function(e) {
-        // Ctrl+Enter or Cmd+Enter to run code
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault();
             runCode();
         }
         
-        // Auto-indent
         if (e.key === 'Tab') {
             e.preventDefault();
             const start = this.selectionStart;
@@ -40,17 +35,15 @@ function initCodeEditor() {
         }
     });
     
-    // Apply syntax highlighting if Prism.js is available
     if (typeof Prism !== 'undefined') {
         codeEditor.addEventListener('input', function() {
             const code = this.value;
             const highlighted = Prism.highlight(code, Prism.languages.javascript, 'javascript');
-            // If we had a separate highlighter element, we would update it here
+            codeEditor.innerHTML = highlighted; // Ensure highlighted code is displayed
         });
     }
 }
 
-// Execute user's code and display output
 function runCode() {
     const codeEditor = document.getElementById('code-editor');
     const outputContainer = document.getElementById('code-output');
@@ -60,26 +53,22 @@ function runCode() {
     const code = codeEditor.value;
     outputContainer.innerHTML = '';
     
-    // Create a safe environment to run user code
     try {
-        // Create a virtual console.log to capture output
         const outputs = [];
         const virtualConsole = {
             log: function(...args) {
                 outputs.push(args.map(arg => formatOutput(arg)).join(' '));
-                console.log(...args); // Also log to browser console
+                console.log(...args);
             },
             error: function(...args) {
                 outputs.push(`<span class="error">${args.map(arg => formatOutput(arg)).join(' ')}</span>`);
-                console.error(...args); // Also log to browser console
+                console.error(...args);
             }
         };
         
-        // Execute the code in a new Function context with virtual console
         const executeCode = new Function('console', code);
         executeCode(virtualConsole);
         
-        // Display any outputs
         if (outputs.length > 0) {
             outputContainer.innerHTML = outputs.join('<br>');
         } else {
@@ -89,14 +78,12 @@ function runCode() {
         outputContainer.innerHTML = `<span class="error">Error: ${error.message}</span>`;
     }
     
-    // Update visualizations if needed
     const currentLesson = getCurrentLesson();
     if (currentLesson) {
         updateVisualization(currentLesson.id, codeEditor.value);
     }
 }
 
-// Check if user's code passes the lesson's requirements
 function checkCode() {
     const codeEditor = document.getElementById('code-editor');
     const outputContainer = document.getElementById('code-output');
@@ -128,7 +115,6 @@ function checkCode() {
     }
 }
 
-// Reset the code editor to default or boilerplate code
 function resetCode() {
     const codeEditor = document.getElementById('code-editor');
     if (!codeEditor) return;
@@ -144,7 +130,6 @@ function resetCode() {
     document.getElementById('code-output').innerHTML = '';
 }
 
-// Format output for display
 function formatOutput(value) {
     if (typeof value === 'object') {
         try {
@@ -156,7 +141,6 @@ function formatOutput(value) {
     return String(value);
 }
 
-// Export functions for use in other modules
 window.initCodeEditor = initCodeEditor;
 window.runCode = runCode;
 window.checkCode = checkCode;

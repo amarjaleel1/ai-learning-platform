@@ -23,6 +23,9 @@ function initNotifications() {
         notificationContainer.className = 'notification-container ' + config.position;
         document.body.appendChild(notificationContainer);
     }
+
+    // Show a notification
+    showNotification('Notifications initialized', 'info');
 }
 
 /**
