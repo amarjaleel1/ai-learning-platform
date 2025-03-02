@@ -17,7 +17,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 1
-    
+
     - name: Find package.json
       id: find-package
       run: |
@@ -41,17 +41,15 @@ jobs:
             exit 1
           fi
         fi
-    
+
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        # Don't use cache to avoid integrity issues
-        cache: false
-    
+
     - name: Clean npm cache
       run: npm cache clean --force
-    
+
     - name: Install dependencies with retries
       uses: nick-fields/retry@v2
       with:
@@ -63,11 +61,11 @@ jobs:
           npm config set fetch-retry-mintimeout 20000
           npm config set fetch-retry-maxtimeout 120000
           npm install --no-fund --loglevel verbose
-    
+
     - name: Create logs directory
       run: mkdir -p logs
       working-directory: ${{ steps.find-package.outputs.package_dir }}
-    
+
     - name: Start server in background
       run: |
         echo "Starting server..." | tee -a logs/server.log
@@ -78,21 +76,21 @@ jobs:
         sleep 15 # Give the server more time to start
       working-directory: ${{ steps.find-package.outputs.package_dir }}
       continue-on-error: true
-    
+
     - name: List installed packages
       run: |
         echo "Listing installed packages..." | tee -a logs/packages.log
         npm list --depth=0 | tee -a logs/packages.log
       working-directory: ${{ steps.find-package.outputs.package_dir }}
       continue-on-error: true
-    
+
     - name: Run browser tests
       run: |
         echo "Running browser tests..." | tee -a logs/tests.log
         npm run test:browser || echo "Browser tests failed with exit code $?" | tee -a logs/tests.log
       working-directory: ${{ steps.find-package.outputs.package_dir }}
       continue-on-error: true
-    
+
     - name: Run accessibility tests
       run: |
         echo "Running accessibility tests..." | tee -a logs/tests.log
@@ -111,7 +109,7 @@ jobs:
         fi
       working-directory: ${{ steps.find-package.outputs.package_dir }}
       continue-on-error: true
-    
+
     - name: Collect diagnostic information
       if: always()
       run: |
