@@ -40,7 +40,7 @@
     color: #666;
 }
 
-/* Toggle switch */
+/* Toggle switch - with accessibility improvements */
 .toggle {
     position: relative;
     display: inline-block;
@@ -52,6 +52,12 @@
     opacity: 0;
     width: 0;
     height: 0;
+}
+
+/* Add focus styles for keyboard navigation */
+.toggle input:focus + .toggle-slider {
+    box-shadow: 0 0 0 2px var(--primary-color);
+    outline: 2px solid transparent;
 }
 
 .toggle-slider {
@@ -96,7 +102,7 @@ input:checked + .toggle-slider:before {
     text-align: right;
 }
 
-/* Analytics settings dialog */
+/* Analytics settings dialog - with accessibility improvements */
 .analytics-overlay {
     position: fixed;
     top: 0;
@@ -127,6 +133,8 @@ input:checked + .toggle-slider:before {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     transform: translateY(20px);
     transition: transform 0.3s;
+    /* Accessibility - improve focus management */
+    outline: none;
 }
 
 .analytics-overlay.show .analytics-modal {
@@ -152,10 +160,17 @@ input:checked + .toggle-slider:before {
     cursor: pointer;
     color: var(--text-secondary);
     transition: color 0.2s;
+    /* Accessibility attributes */
+    padding: 5px;
 }
 
 .analytics-close:hover {
     color: var(--text-primary);
+}
+
+.analytics-close:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
 .analytics-options {
@@ -194,6 +209,11 @@ input:checked + .toggle-slider:before {
     position: relative;
     cursor: pointer;
     transition: background-color 0.2s;
+}
+
+.analytics-checkbox input:focus + label {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
 .analytics-checkbox label::after {
@@ -255,6 +275,11 @@ input:checked + .toggle-slider:before {
     background-color: var(--primary-dark);
 }
 
+.analytics-save:focus {
+    outline: 2px solid var(--primary-dark);
+    outline-offset: 2px;
+}
+
 .analytics-cancel {
     background-color: transparent;
     border: 1px solid var(--border-color);
@@ -263,6 +288,11 @@ input:checked + .toggle-slider:before {
 
 .analytics-cancel:hover {
     background-color: var(--surface-color);
+}
+
+.analytics-cancel:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
 /* Analytics CSS - Accessible data visualization styles */
@@ -303,6 +333,13 @@ input:checked + .toggle-slider:before {
     /* Accessibility enhancement */
     min-height: 40px;
     min-width: 120px;
+    /* Improved focus styles */
+    outline: none;
+}
+
+.analytics-filter-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(98, 0, 238, 0.2);
 }
 
 .analytics-charts {
