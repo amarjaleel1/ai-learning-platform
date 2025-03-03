@@ -4,6 +4,8 @@
  * to real backend services in production
  */
 
+import { fetchWithTimeout } from './utils.js';
+
 // API configuration
 const API_CONFIG = {
     baseUrl: '/api',
@@ -310,5 +312,3 @@ function handleMockAchievements(endpoint, options, resolve, reject) {
     // Reject other methods
     reject(new ApiError('Method not allowed', 405));
 }
-            
-            

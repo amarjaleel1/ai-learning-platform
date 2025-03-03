@@ -1,3 +1,5 @@
+import { initUserState } from './user.js';
+
 // User state management
 let userState = {
     username: "Guest",

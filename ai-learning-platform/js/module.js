@@ -14,6 +14,7 @@ import Print from './modules/print.js';
 import Network from './modules/network.js';
 import * as Helpers from './utils/helpers.js';
 import CONFIG from './utils/config.js';
+import { initLessons } from './modules/lessons.js';
 
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {

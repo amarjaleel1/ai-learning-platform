@@ -2,6 +2,8 @@
  * Dashboard functionality to display user progress and stats
  */
 
+import { loadLesson } from './lessons.js';
+
 // Initialize the dashboard
 function initDashboard() {
     document.addEventListener('DOMContentLoaded', () => {

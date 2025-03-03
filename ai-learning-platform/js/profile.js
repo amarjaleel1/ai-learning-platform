@@ -1,3 +1,5 @@
+import { showNotification } from './modules/notifications.js';
+
 // User profile management
 
 // Default user state
