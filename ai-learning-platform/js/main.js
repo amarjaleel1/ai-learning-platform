@@ -354,3 +354,14 @@ function showCompletionModal(lessonId) {
         }, 300);
     }
 }
+
+// Add loader timeout to ensure it disappears
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        const appLoader = document.getElementById('app-loader');
+        if (appLoader) {
+            appLoader.style.display = 'none';
+            console.log('Loader hidden from main.js');
+        }
+    }, 2000); // Fallback timeout of 2 seconds
+});
