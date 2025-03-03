@@ -897,26 +897,24 @@ footer {
     outline-offset: 2px;
 }
 
-/* Skip to main content link - accessibility improvement */
+/* Fix for skip link - the conflicting styles are causing positioning issues */
 .skip-to-content {
     position: absolute;
-    left: -9999px;
-    z-index: 1001;
-    padding: 1em;
+    left: 0;
+    top: -40px; /* Position off-screen initially */
     background-color: var(--primary-color);
     color: white;
-    opacity: 0;
-    top: -40px; /* Position off-screen initially */
+    padding: 8px 15px;
+    z-index: 1001;
     transition: top 0.3s;
+    opacity: 1;
 }
 
 .skip-to-content:focus {
-    left: 50%;
-    transform: translateX(-50%);
-    opacity: 1;
     top: 0; /* Move into view when focused */
     left: 0; 
-    transform: none; /* Remove transform to fix positioning */
+    transform: none; /* No transform needed */
+    opacity: 1;
 }
 
 /* Fix for app-loader visibility */

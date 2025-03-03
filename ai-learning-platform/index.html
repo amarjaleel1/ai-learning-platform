@@ -35,7 +35,7 @@
             <h1>AI Learning Platform</h1>
         </div>
         <div class="user-info">
-            <span id="username" aria-label="Current user">Guest</span>
+            <span id="username" role="button" tabindex="0" aria-haspopup="true" aria-label="Current user">Guest</span>
             <div id="coin-display" aria-label="Coins earned">
                 <i class="fas fa-coins" aria-hidden="true"></i>
                 <span id="coins">0</span>
@@ -205,6 +205,20 @@
     <script src="js/ui/tooltip.js"></script>
     <script src="js/ui/theme-switcher.js"></script>
     <script src="js/ui/mobile-menu.js"></script>
+    
+    <!-- Add navigation fix script -->
+    <script src="js/navigation-fix.js"></script>
+    
+    <!-- Add debug utility and run diagnostics -->
+    <script src="js/debug-utility.js"></script>
+    <script>
+        // Run diagnostics after a short delay to allow other scripts to initialize
+        setTimeout(function() {
+            if (window.AIPlatformDebug) {
+                window.AIPlatformDebug.runDiagnostics();
+            }
+        }, 3000);
+    </script>
     
     <!-- ES6 module system - Load this last -->
     <script type="module" src="js/module.js"></script>

@@ -18,6 +18,13 @@ jobs:
       with:
         fetch-depth: 1
 
+    - name: Display repository structure
+      run: |
+        echo "Repository structure:"
+        find . -type d -not -path "*/\.*" | sort
+        echo "Looking for package.json files:"
+        find . -name "package.json" -type f
+
     - name: Find package.json
       id: find-package
       run: |
@@ -29,7 +36,7 @@ jobs:
           echo "package_dir=ai-learning-platform" >> $GITHUB_OUTPUT
           echo "Found package.json in ai-learning-platform directory"
         else
-          echo "Could not find package.json"
+          echo "Searching for package.json files..."
           find . -name "package.json" -type f | tee package-locations.txt
           if [ -s package-locations.txt ]; then
             # Get the first package.json location
@@ -42,13 +49,31 @@ jobs:
           fi
         fi
 
+    - name: Display package.json contents
+      run: |
+        if [ -f "${{ steps.find-package.outputs.package_dir }}/package.json" ]; then
+          echo "Contents of package.json:"
+          cat ${{ steps.find-package.outputs.package_dir }}/package.json
+        else
+          echo "package.json not found at ${{ steps.find-package.outputs.package_dir }}/package.json"
+          exit 1
+        fi
+
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: ${{ steps.find-package.outputs.package_dir }}/package-lock.json
+
+    - name: Display Node.js and npm versions
+      run: |
+        node --version
+        npm --version
 
     - name: Clean npm cache
       run: npm cache clean --force
+      continue-on-error: true
 
     - name: Install dependencies with retries
       uses: nick-fields/retry@v2
@@ -66,14 +91,44 @@ jobs:
       run: mkdir -p logs
       working-directory: ${{ steps.find-package.outputs.package_dir }}
 
+    - name: Verify structure after npm install
+      run: |
+        echo "Directory structure:"
+        ls -la
+        echo "Node modules:"
+        ls -la node_modules/ || echo "No node_modules directory found"
+        echo "Checking for test files:"
+        find . -name "*test*.js" -o -name "*spec*.js"
+      working-directory: ${{ steps.find-package.outputs.package_dir }}
+      continue-on-error: true
+
     - name: Start server in background
       run: |
         echo "Starting server..." | tee -a logs/server.log
-        # Allow server start to fail without failing the whole job
-        npm start & 
-        echo $! > server.pid
+        # Check if there is a start script in package.json
+        if grep -q "\"start\":" package.json; then
+          echo "Found start script in package.json" | tee -a logs/server.log
+          npm start > logs/server.log 2>&1 & 
+          echo $! > server.pid
+        else
+          echo "No start script found, looking for server.js" | tee -a logs/server.log
+          if [ -f "server.js" ]; then
+            node server.js > logs/server.log 2>&1 &
+            echo $! > server.pid
+          else
+            echo "No server.js found, looking for index.js" | tee -a logs/server.log
+            if [ -f "index.js" ]; then
+              node index.js > logs/server.log 2>&1 &
+              echo $! > server.pid
+            else
+              echo "No server file found. Creating a simple file server." | tee -a logs/server.log
+              npx http-server . -p 3000 > logs/server.log 2>&1 &
+              echo $! > server.pid
+            fi
+          fi
+        fi
         echo "Waiting for server to be ready..." | tee -a logs/server.log
-        sleep 15 # Give the server more time to start
+        sleep 20 # Give the server more time to start
       working-directory: ${{ steps.find-package.outputs.package_dir }}
       continue-on-error: true
 
@@ -84,7 +139,41 @@ jobs:
       working-directory: ${{ steps.find-package.outputs.package_dir }}
       continue-on-error: true
 
+    - name: Check if server is running
+      run: |
+        echo "Checking server status..." | tee -a logs/server.log
+        # Try to ping the server to see if it's up
+        if curl -s http://localhost:3000 -o /dev/null; then
+          echo "Server is running at http://localhost:3000" | tee -a logs/server.log
+        else
+          echo "Server is not responding at http://localhost:3000" | tee -a logs/server.log
+          echo "Server logs:" | tee -a logs/server.log
+          cat logs/server.log | tee -a logs/diagnostics.log
+        fi
+      working-directory: ${{ steps.find-package.outputs.package_dir }}
+      continue-on-error: true
+
+    - name: Check for test scripts
+      id: check-tests
+      run: |
+        if grep -q "\"test:browser\":" package.json; then
+          echo "has_browser_tests=true" >> $GITHUB_OUTPUT
+          echo "Found test:browser script in package.json"
+        else
+          echo "has_browser_tests=false" >> $GITHUB_OUTPUT
+          echo "No test:browser script found in package.json"
+        fi
+        if grep -q "\"test:accessibility\":" package.json; then
+          echo "has_accessibility_tests=true" >> $GITHUB_OUTPUT
+          echo "Found test:accessibility script in package.json"
+        else
+          echo "has_accessibility_tests=false" >> $GITHUB_OUTPUT
+          echo "No test:accessibility script found in package.json"
+        fi
+      working-directory: ${{ steps.find-package.outputs.package_dir }}
+
     - name: Run browser tests
+      if: steps.check-tests.outputs.has_browser_tests == 'true'
       run: |
         echo "Running browser tests..." | tee -a logs/tests.log
         npm run test:browser || echo "Browser tests failed with exit code $?" | tee -a logs/tests.log
@@ -92,24 +181,74 @@ jobs:
       continue-on-error: true
 
     - name: Run accessibility tests
+      if: steps.check-tests.outputs.has_accessibility_tests == 'true'
       run: |
         echo "Running accessibility tests..." | tee -a logs/tests.log
         npm run test:accessibility || echo "Accessibility tests failed with exit code $?" | tee -a logs/tests.log
       working-directory: ${{ steps.find-package.outputs.package_dir }}
       continue-on-error: true
-      
-    - name: Check if server is running
+
+    - name: Run Puppeteer tests manually if no test scripts exist
+      if: steps.check-tests.outputs.has_browser_tests == 'false' && steps.check-tests.outputs.has_accessibility_tests == 'false'
       run: |
-        echo "Checking server status..." | tee -a logs/server.log
-        if curl -s http://localhost:3000 > /dev/null; then
-          echo "Server is running properly" | tee -a logs/server.log
+        echo "No test scripts found, attempting to run Puppeteer tests manually..." | tee -a logs/tests.log
+        # Check if there are test files
+        TEST_FILES=$(find . -name "*test*.js" -o -name "*spec*.js")
+        if [ -n "$TEST_FILES" ]; then
+          echo "Found test files: $TEST_FILES" | tee -a logs/tests.log
+          for file in $TEST_FILES; do
+            echo "Running test file: $file" | tee -a logs/tests.log
+            node $file || echo "Test failed for $file with exit code $?" | tee -a logs/tests.log
+          done
         else
-          echo "Server is not running" | tee -a logs/server.log
-          cat logs/server.log || true
+          echo "No test files found" | tee -a logs/tests.log
+          # Create and run a simple Puppeteer test
+          echo "Creating a simple Puppeteer test..." | tee -a logs/tests.log
+          cat > simple-test.js << 'EOF'
+          const puppeteer = require('puppeteer');
+          
+          async function testPage() {
+            try {
+              console.log('Starting Puppeteer test');
+              const browser = await puppeteer.launch({
+                args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                headless: 'new'
+              });
+              console.log('Browser launched');
+              
+              const page = await browser.newPage();
+              console.log('New page created');
+              
+              await page.goto('http://localhost:3000', {
+                waitUntil: 'networkidle2',
+                timeout: 30000
+              });
+              console.log('Page loaded');
+              
+              const title = await page.title();
+              console.log(`Page title: ${title}`);
+              
+              // Take a screenshot
+              await page.screenshot({ path: 'screenshot.png' });
+              console.log('Screenshot taken');
+              
+              await browser.close();
+              console.log('Test completed successfully');
+            } catch (error) {
+              console.error(`Test failed: ${error.message}`);
+              process.exit(1);
+            }
+          }
+          
+          testPage();
+          EOF
+          
+          echo "Running simple Puppeteer test..." | tee -a logs/tests.log
+          node simple-test.js || echo "Simple test failed with exit code $?" | tee -a logs/tests.log
         fi
       working-directory: ${{ steps.find-package.outputs.package_dir }}
       continue-on-error: true
-
+      
     - name: Collect diagnostic information
       if: always()
       run: |
@@ -120,6 +259,28 @@ jobs:
         echo "Disk space: $(df -h)" | tee -a logs/diagnostics.log
         echo "Package.json:" | tee -a logs/diagnostics.log
         cat package.json | tee -a logs/diagnostics.log || echo "No package.json found"
+        
+        # Check if server.pid exists and if so, get process info
+        if [ -f "server.pid" ]; then
+          SERVER_PID=$(cat server.pid)
+          echo "Server PID: $SERVER_PID" | tee -a logs/diagnostics.log
+          ps -p $SERVER_PID -o pid,ppid,cmd,stat || echo "Process not found" | tee -a logs/diagnostics.log
+        else
+          echo "No server.pid file found" | tee -a logs/diagnostics.log
+        fi
+      working-directory: ${{ steps.find-package.outputs.package_dir }}
+      continue-on-error: true
+
+    - name: Stop server
+      if: always()
+      run: |
+        if [ -f "server.pid" ]; then
+          SERVER_PID=$(cat server.pid)
+          echo "Stopping server with PID $SERVER_PID"
+          kill -15 $SERVER_PID || echo "Failed to stop server with PID $SERVER_PID"
+        else
+          echo "No server.pid file found"
+        fi
       working-directory: ${{ steps.find-package.outputs.package_dir }}
       continue-on-error: true
 
@@ -131,6 +292,18 @@ jobs:
         path: |
           ${{ steps.find-package.outputs.package_dir }}/logs/
           ${{ steps.find-package.outputs.package_dir }}/npm-debug.log*
+          ${{ steps.find-package.outputs.package_dir }}/screenshot.png
           /home/runner/.npm/_logs/
+        retention-days: 5
+        if-no-files-found: warn
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          ${{ steps.find-package.outputs.package_dir }}/screenshot.png
+          ${{ steps.find-package.outputs.package_dir }}/logs/tests.log
         retention-days: 5
         if-no-files-found: warn

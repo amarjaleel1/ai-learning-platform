@@ -3,47 +3,43 @@
  * Simple Express server to serve the learning platform
  */
 
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import compression from 'compression';
-import helmet from 'helmet';
-import cors from 'cors';
+const express = require('express');
+const path = require('path');
+const compression = require('compression');
+const helmet = require('helmet');
+const cors = require('cors');
 
-// ES Module __dirname equivalent
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Create Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Apply middleware
-app.use(compression()); // Compress responses
-app.use(cors()); // Enable CORS for all routes
+// Security middleware
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com"],
-            styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "cdnjs.cloudflare.com"],
-            fontSrc: ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
-            imgSrc: ["'self'", "data:"],
-            connectSrc: ["'self'"]
-        }
-    }
-})); // Set security headers
+  contentSecurityPolicy: false, // Disabled for development purposes
+}));
+app.use(cors());
+app.use(compression());
 
 // Serve static files
 app.use(express.static(__dirname));
 
-// Serve the main HTML file for all routes
+// Fallback route - serve index.html for all routes
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Start the server
+// Start server
 app.listen(PORT, () => {
-    console.log(`AI Learning Platform running on http://localhost:${PORT}`);
-    console.log(`Press Ctrl+C to stop the server`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Visit http://localhost:${PORT} to view the AI Learning Platform`);
+});
+
+// Handle process termination gracefully
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully');
+  process.exit(0);
 });
