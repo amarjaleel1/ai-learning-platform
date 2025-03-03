@@ -312,4 +312,3 @@ function handleMockAchievements(endpoint, options, resolve, reject) {
     // Reject other methods
     reject(new ApiError('Method not allowed', 405));
 }
-            
