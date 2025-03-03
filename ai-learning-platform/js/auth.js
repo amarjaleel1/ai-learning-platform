@@ -2,6 +2,8 @@
  * Authentication module for handling user login, logout, and session management
  */
 
+import { post } from './utils/api-client.js';
+
 // Import dependencies if needed
 const API = window.API || {};
 const EventBus = window.EventBus || { publish: () => {} };
@@ -67,7 +69,7 @@ async function login(username, password) {
         }
 
         // Real authentication flow
-        const response = await API.post('auth/login', { username, password });
+        const response = await post('auth/login', { username, password });
         
         // Store auth data
         storeAuthData(response.token, response.user);
