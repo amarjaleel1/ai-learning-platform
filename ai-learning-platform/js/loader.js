@@ -3,6 +3,8 @@
  * This file implements dynamic loading of modules and resources
  */
 
+import { initView } from './app.js';
+
 // Keep track of loaded modules
 const loadedModules = new Set();
 

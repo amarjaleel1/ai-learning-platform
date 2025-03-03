@@ -2,6 +2,8 @@
  * Main application initialization and coordination
  */
 
+import { loadLesson } from './lessons.js';
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     // Show loading indicator

@@ -1,3 +1,5 @@
+import { getCurrentLesson } from './lessons.js';
+
 // Code editor enhancements
 const codeEditor = document.getElementById('code-editor');
 

@@ -4,6 +4,7 @@
  */
 
 import { getUserState, saveUserState, updateCoins } from './state.js';
+import { showNotification } from './notifications.js';
 
 // Current lesson state
 let currentLessonId = null;
