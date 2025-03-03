@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debugging Guide - AI Learning Platform</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #6200ee;
+            border-bottom: 2px solid #6200ee;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #3700b3;
+            margin-top: 30px;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, monospace;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .important {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+        }
+        .fix {
+            background-color: #d1e7dd;
+            border-left: 4px solid #198754;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI Learning Platform Debugging Guide</h1>
+    
+    <div class="important">
+        <strong>Important:</strong> This guide helps fix common issues with the platform, including navigation problems.
+    </div>
+    
+    <h2>Common Issues and Solutions</h2>
+    
+    <h3>1. Navigation Not Working</h3>
+    <p>If you click on navigation items but nothing happens:</p>
+    <ul>
+        <li>Make sure all script files are properly loaded (check browser console for errors)</li>
+        <li>Add the navigation-fix.js file to your index.html before the closing body tag</li>
+        <li>Ensure all data-nav and data-view attributes match correctly</li>
+    </ul>
+    <div class="fix">
+        <strong>Add this to index.html:</strong>
+        <pre>&lt;script src="js/navigation-fix.js"&gt;&lt;/script&gt;</pre>
+    </div>
+    
+    <h3>2. Application Gets Stuck on Loading</h3>
+    <p>If the app loader/spinner doesn't disappear:</p>
+    <ul>
+        <li>Check for JavaScript errors in the console</li>
+        <li>Make sure the loader has a timeout fallback</li>
+        <li>Add the following code to ensure the loader disappears:</li>
+    </ul>
+    <div class="fix">
+        <pre>// Add this to your main.js file
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        document.getElementById('app-loader').style.display = 'none';
+    }, 2000); // Fallback timeout of 2 seconds
+});</pre>
+    </div>
+    
+    <h3>3. Content Not Displaying Properly</h3>
+    <p>If content is invisible or improperly positioned:</p>
+    <ul>
+        <li>Ensure CSS z-index values are set correctly (see browser-compatibility.css)</li>
+        <li>Check that the 'hidden' class is being toggled correctly</li>
+        <li>Make sure content containers have proper dimensions</li>
+    </ul>
+    
+    <h3>4. Browser-Specific Issues</h3>
+    <p>For issues that only appear in certain browsers:</p>
+    <ul>
+        <li>Include the browser-compatibility.css file</li>
+        <li>Test in multiple browsers (Chrome, Firefox, Safari, Edge)</li>
+        <li>Use feature detection rather than browser detection</li>
+    </ul>
+    <div class="fix">
+        <strong>Add this to index.html:</strong>
+        <pre>&lt;link rel="stylesheet" href="css/browser-compatibility.css"&gt;</pre>
+    </div>
+    
+    <h2>Specific Function Fixes</h2>
+    
+    <h3>1. Code Editor Not Working</h3>
+    <p>If the code editor doesn't respond or run code:</p>
+    <div class="fix">
+        <pre>// Fix code editor focus issues
+document.getElementById('code-editor').addEventListener('click', function() {
+    this.focus();
+});</pre>
+    </div>
+    
+    <h3>2. Lesson Navigation Issues</h3>
+    <p>If clicking on lesson items doesn't work:</p>
+    <div class="fix">
+        <pre>// Manually trigger lesson click handling
+document.querySelectorAll('.lesson-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+        // Add click handler logic here
+        const lessonId = this.getAttribute('data-lesson-id');
+        console.log('Loading lesson: ' + lessonId);
+        // Your lesson loading code
+    });
+});</pre>
+    </div>
+    
+    <h2>Contact Support</h2>
+    <p>If issues persist after trying these solutions, please contact support at <a href="mailto:support@ailearningplatform.com">support@ailearningplatform.com</a>.</p>
+</body>
+</html>

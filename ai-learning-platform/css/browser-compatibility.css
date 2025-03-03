@@ -1,0 +1,99 @@
+/* Browser compatibility fixes */
+
+/* Fix for older browsers that don't support CSS variables */
+@supports not (--custom: property) {
+    body {
+        background-color: #f5f5f5;
+        color: #333333;
+    }
+    
+    a {
+        color: #6200ee;
+    }
+    
+    header {
+        background-color: #6200ee;
+        color: white;
+    }
+    
+    button {
+        background-color: #6200ee;
+        color: white;
+    }
+    
+    button:hover {
+        background-color: #3700b3;
+    }
+}
+
+/* Fix for Safari input styling */
+input[type="checkbox"],
+input[type="radio"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-radius: 3px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+    border-color: #6200ee;
+    background-color: #6200ee;
+}
+
+/* Fix for IE11 flexbox */
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+    .container {
+        display: block;
+    }
+    
+    .sidebar {
+        float: left;
+        width: 250px;
+    }
+    
+    .content {
+        margin-left: 250px;
+    }
+    
+    .footer-content {
+        display: block;
+    }
+    
+    .footer-links {
+        float: right;
+    }
+    
+    /* Clear floats */
+    .container:after,
+    .footer-content:after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+}
+
+/* Fix for Firefox focus ring */
+::-moz-focus-inner {
+    border: 0;
+}
+
+/* Fix for iOS tap highlight */
+* {
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+
+/* Fix for Chrome autofill background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px white inset;
+    transition: background-color 5000s ease-in-out 0s;
+}

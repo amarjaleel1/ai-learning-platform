@@ -25,6 +25,8 @@
     <link rel="stylesheet" href="css/lessons.css">
 </head>
 <body>
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+    
     <header role="banner">
         <div class="logo">
             <i class="fas fa-brain" aria-hidden="true"></i>
@@ -39,12 +41,12 @@
         </div>
     </header>
     
-    <nav class="main-nav" role="navigation">
+    <nav class="main-nav" role="navigation" aria-label="Main navigation">
         <ul>
-            <li><a href="#welcome" data-nav="welcome">Welcome</a></li>
-            <li><a href="#lessons" data-nav="lessons">Lessons</a></li>
-            <li><a href="#dashboard" data-nav="dashboard">Dashboard</a></li>
-            <li><a href="#about" data-nav="about">About</a></li>
+            <li><a href="#welcome" data-nav="welcome" tabindex="0">Welcome</a></li>
+            <li><a href="#lessons" data-nav="lessons" tabindex="0">Lessons</a></li>
+            <li><a href="#dashboard" data-nav="dashboard" tabindex="0">Dashboard</a></li>
+            <li><a href="#about" data-nav="about" tabindex="0">About</a></li>
         </ul>
     </nav>
     
@@ -56,7 +58,7 @@
             </ul>
         </div>
         
-        <div class="content" role="main">
+        <div id="main-content" class="content" role="main">
             <div id="lesson-container" data-view="welcome">
                 <h2 id="lesson-title">Welcome to AI Learning Platform</h2>
                 <div id="lesson-content" aria-live="polite">

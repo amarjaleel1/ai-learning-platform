@@ -81,7 +81,7 @@ header {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1000; /* Increased z-index to ensure it remains on top */
 }
 
 .logo {
@@ -141,6 +141,7 @@ header {
 
 .coin-animation {
     animation: coinPulse 1s;
+    will-change: transform; /* Optimize animations for performance */
 }
 
 @keyframes coinPulse {
@@ -155,6 +156,7 @@ header {
     max-width: 1600px;
     margin: 0 auto;
     height: calc(100vh - 120px);
+    min-height: 400px; /* Add min-height to prevent collapse */
     overflow: hidden;
 }
 
@@ -170,6 +172,7 @@ header {
     max-height: calc(100vh - 60px);
     position: sticky;
     top: 60px;
+    height: calc(100vh - 60px);
 }
 
 .sidebar h2 {
@@ -210,6 +213,7 @@ header {
 .lesson-item:focus {
     outline: 2px solid var(--primary-color);
     outline-offset: -2px;
+    background-color: rgba(98, 0, 238, 0.05); /* Subtle background for keyboard focus */
 }
 
 .lesson-item.locked {
@@ -252,6 +256,7 @@ header {
 
 .lesson-item.just-completed {
     animation: completedPulse 2s;
+    will-change: transform; /* Optimize animations for performance */
 }
 
 @keyframes completedPulse {
@@ -361,6 +366,7 @@ header {
     background-color: var(--white);
     color: var(--dark-text);
     tab-size: 4;
+    overflow: auto; /* Ensure content overflow is handled properly */
 }
 
 #code-editor:focus {
@@ -506,16 +512,19 @@ button i {
         flex-direction: column;
         gap: 10px;
         padding-bottom: 15px;
+        position: relative; /* Fix sticky positioning on small screens */
     }
     
     .container {
         flex-direction: column;
+        height: auto; /* Remove fixed height on small screens */
     }
     
     .sidebar {
         width: 100%;
         max-height: none;
-        position: static;
+        position: relative; /* Fix positioning on small screens */
+        height: auto;
     }
     
     .content {
@@ -579,6 +588,7 @@ button i {
 
 .just-completed {
     animation: complete 1.5s ease;
+    will-change: transform; /* Optimize animations for performance */
 }
 
 /* Code syntax highlighting */
@@ -663,7 +673,7 @@ footer {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 2000; /* Ensure modal appears above all other content */
     opacity: 0;
     visibility: hidden;
     transition: 0.3s;
@@ -891,15 +901,35 @@ footer {
 .skip-to-content {
     position: absolute;
     left: -9999px;
-    z-index: 999;
+    z-index: 1001;
     padding: 1em;
     background-color: var(--primary-color);
     color: white;
     opacity: 0;
+    top: -40px; /* Position off-screen initially */
+    transition: top 0.3s;
 }
 
 .skip-to-content:focus {
     left: 50%;
     transform: translateX(-50%);
     opacity: 1;
+    top: 0; /* Move into view when focused */
+    left: 0; 
+    transform: none; /* Remove transform to fix positioning */
+}
+
+/* Fix for app-loader visibility */
+.app-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 3000; /* Highest z-index to appear above everything */
 }
