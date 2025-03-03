@@ -85,7 +85,7 @@ jobs:
           cd ${{ steps.find-package.outputs.package_dir }}
           npm config set fetch-retry-mintimeout 20000
           npm config set fetch-retry-maxtimeout 120000
-          npm install --no-fund --loglevel verbose
+          npm install --no-fund --no-optional --loglevel verbose
 
     - name: Create logs directory
       run: mkdir -p logs
